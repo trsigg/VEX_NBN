@@ -12,10 +12,12 @@
 enum catapultState { REST, FIRING, MANUAL_OVERRIDE };
 catapultState chooState = FIRING;
 
-int speed;
+int chooSpeed;
 
-int switchValue;
-int time;
+int rightSpeed = 0;
+int leftSpeed = 0;
+int lr = 0;
+int fb = 0;
 
 void setFeedSpeed(int speed)
 {
@@ -29,16 +31,15 @@ void setChooSpeed(int speed)
 	motor[choo2] = speed;
 }
 
-void setRightSpeed(int speed)
+void setDriveSpeed(int right, int left)
 {
-	motor[right1] = speed;
-	motor[right2] = speed;
-}
+	motor[right1] = right;
+	motor[right2] = right;
+	motor[left1] = left;
+	motor[left2] = left;
 
-void setLeftSpeed(int speed)
-{
-	motor[left1] = speed;
-	motor[left2] = speed;
+	rightSpeed = right;
+	leftSpeed = left;
 }
 
 void feedControl()
@@ -61,7 +62,6 @@ void cataChooChoo()
 {
 	if (chooState == FIRING && SensorValue[chooSwitch] == 0 && time1[T2] > 750)
 	{
-		//SensorValue[chooEncoder] = 0;
 		chooState = REST;
 	}
 	else if (chooState == REST && vexRT[Btn5U] == 1)
@@ -82,35 +82,58 @@ void cataChooChoo()
 	switch (chooState)
 	{
 	case REST:
-		speed = 20;
+		chooSpeed = 20;
 		break;
 	case FIRING:
-		speed = 127;
+		chooSpeed = 127;
 		break;
 	case MANUAL_OVERRIDE:
-		speed = 127;
+		chooSpeed = 127;
 		break;
 	default:
-		speed = 20;
+		chooSpeed = 20;
 	}
 
-	setChooSpeed(speed);
+	setChooSpeed(chooSpeed);
+}
+
+void driveControl()
+{
+	if (vexRT[Ch3] > 50 || vexRT[Ch3] < -50)
+	{
+		if (vexRT[Ch1] < 50 && vexRT[Ch1] > -50)
+		{
+			//move straight forward or backward
+			setDriveSpeed(vexRT[Ch3], vexRT[Ch3]);
+		}
+		else
+		{
+			//angled turn
+			lr = vexRT[Ch1];
+			fb = vexRT[Ch3];
+			//make it work
+			setDriveSpeed(vexRT[Ch3] * vexRT[Ch3] / vexRT[Ch1] / 16129, -vexRT[Ch3] / vexRT[Ch1]);
+		}
+	}
+	else if (vexRT[Ch1] > 50 || vexRT[Ch1] < -50)
+	{
+		//point turn
+		setDriveSpeed(vexRT[Ch1], -vexRT[Ch1]);
+	}
+	else
+	{
+		setDriveSpeed(0, 0);
+	}
 }
 
 task main()
 {
 	while (true)
 	{
-		//debug
-		switchValue = SensorValue[chooSwitch];
-		time = time1[T1];
-
 		cataChooChoo();
 
 		feedControl();
 
-		//drive control
-		setRightSpeed(vexRT[Ch2]);
-		setLeftSpeed(vexRT[Ch3]);
+		driveControl();
 	}
 }
