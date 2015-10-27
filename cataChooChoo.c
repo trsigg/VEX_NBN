@@ -1,4 +1,5 @@
 #pragma config(Sensor, dgtl3,  chooSwitch,     sensorDigitalIn)
+#pragma config(Sensor, dgtl4,  wingusSwitch,   sensorDigitalIn)
 #pragma config(Motor,  port1,           choo1,         tmotorVex393_HBridge, openLoop, reversed)
 #pragma config(Motor,  port3,           dingus,        tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port4,           right1,        tmotorVex393_MC29, openLoop)
@@ -105,8 +106,47 @@ void cataChooChoo()
 	setChooSpeed(chooSpeed);
 }
 
+void autonomous()
+{
+	for (int i = 0; i < 4; i++)
+	{
+		//cock and bring ball to top
+		chooState = COCKING;
+		while (!chooState == READY && SensorValue[wingusSwitch] == 1)
+		{
+			if (chooState != READY)
+			{
+				cataChooChoo();
+			}
+			if (SensorValue[wingusSwitch] == 1)
+			{
+				setFeedSpeed(127);
+			}
+			else
+			{
+				setFeedSpeed(0);
+			}
+		}
+
+		//load ball
+		while (SensorValue[wingusSwitch] == 0)
+		{
+			setFeedSpeed(127);
+		}
+
+		//fire
+		chooState = FIRING;
+		while (chooState != REST)
+		{
+			cataChooChoo();
+		}
+	}
+}
+
 task main()
 {
+	autonomous();
+
 	while (true)
 	{
 		cataChooChoo();
