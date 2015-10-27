@@ -14,7 +14,6 @@ enum catapultState { REST, COCKING, READY, FIRING, MANUAL_OVERRIDE };
 catapultState chooState = REST;
 
 int chooSpeed;
-bool ryanDriving = false;
 
 void setFeedSpeed(int speed)
 {
@@ -35,15 +34,6 @@ void setDriveSpeed(int right, int left)
 	motor[right2] = right;
 	motor[left1] = left;
 	motor[left2] = left;
-}
-
-void updateRyanDriving()
-{
-	if (vexRT[Btn7D] == 1 && time1[T3] > 500)
-	{
-		ryanDriving = !ryanDriving;
-		clearTimer(T3);
-	}
 }
 
 void feedControl()
@@ -115,37 +105,6 @@ void cataChooChoo()
 	setChooSpeed(chooSpeed);
 }
 
-void altDriveControl()
-{
-	if (vexRT[Ch3] > 50 || vexRT[Ch3] < -50)
-	{
-		if (vexRT[Ch1] < 50 && vexRT[Ch1] > -50)
-		{
-			//move straight forward or backward
-			setDriveSpeed(vexRT[Ch3], vexRT[Ch3]);
-		}
-		else if (vexRT[Ch1] > 0)
-		{
-			//angle turn right
-			setDriveSpeed(vexRT[Ch3] * (int)(127 - vexRT[Ch1]) / 127, vexRT[Ch3]);
-		}
-		else
-		{
-			//angle turn left
-			setDriveSpeed(vexRT[Ch3], vexRT[Ch3] * (int)(127 + vexRT[Ch1]) / 127);
-		}
-	}
-	else if (vexRT[Ch1] > 50 || vexRT[Ch1] < -50)
-	{
-		//point turn
-		setDriveSpeed(vexRT[Ch1], -vexRT[Ch1]);
-	}
-	else
-	{
-		setDriveSpeed(0, 0);
-	}
-}
-
 task main()
 {
 	while (true)
@@ -154,15 +113,7 @@ task main()
 
 		feedControl();
 
-		updateRyanDriving();
-
-		if (ryanDriving)
-		{
-			altDriveControl();
-		}
-		else
-		{
-			setDriveSpeed(vexRT[Ch2], vexRT[Ch3]);
+		setDriveSpeed(vexRT[Ch2], vexRT[Ch3]);
 		}
 	}
 }
