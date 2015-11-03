@@ -108,7 +108,7 @@ void cataChooChoo()
 void fire()
 {
 	//controls feed
-	if (SensorValue[feedSwitch] == 1 && SensorValue[chooSwitch] == 1)
+	if ( !(SensorValue[feedSwitch] == 0 && SensorValue[chooSwitch] == 1)) //not at top and uncocked
 	{
 		setFeedSpeed(127);
 	}
@@ -119,22 +119,20 @@ void fire()
 
 	if (SensorValue[chooSwitch] == 1) //cocks catapult
 	{
-		if (chooState == STILL || chooState == REST) //TODO: optimize using setChooSpeed()
-		{
-			chooState = MOVING;
-			clearTimer(T2);
-		}
-
-		cataChooChoo();
+		setChooSpeed(127);
 	}
 	else if (SensorValue[feedSwitch] == 1) //fires TODO: add a timer?
 	{
+
 		chooState = MOVING;
-		clearTimer(T2);
 		robotBehavior = NONE;
-		chooState = MOVING;
 		setFeedSpeed(0);
 		setChooSpeed(127);
+		clearTimer(T2);
+	}
+	else
+	{
+		setChooSpeed(0);
 	}
 }
 
