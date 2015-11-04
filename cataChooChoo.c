@@ -19,9 +19,9 @@
 6 - U - feed forward
 	- D - feed backward
 7	-	U+L-cancel auto behaviors
-	-	U	-	feed to top
 	- D - reverse manual override
 8	- D - autofire
+	- U - feed to top
 */
 
 enum catapultState { REST, COCKING, STILL, FIRING, MANUAL_OVERRIDE };
@@ -173,7 +173,7 @@ void updateAutoBehavior()
 	{
 		robotBehavior = FIRE;
 	}
-	else if (vexRT[Btn7U] == 1)
+	else if (vexRT[Btn8U] == 1)
 	{
 		robotBehavior = FEED;
 	}
