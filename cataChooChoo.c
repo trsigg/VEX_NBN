@@ -90,6 +90,7 @@ void cataChooChoo()
 		{
 			chooSpeed = 0;
 		}
+		break;
 	case COCKING:
 		if (SensorValue[chooSwitch] == 0)
 		{
@@ -99,6 +100,7 @@ void cataChooChoo()
 		{
 			chooSpeed = 127;
 		}
+		break;
 	case STILL:
 		if (vexRT[Btn5U] == 1)
 		{
@@ -109,6 +111,7 @@ void cataChooChoo()
 		{
 			chooSpeed = stillSpeed;
 		}
+		break;
 	case FIRING:
 		if (time1[T2] > fireDuration)
 		{
