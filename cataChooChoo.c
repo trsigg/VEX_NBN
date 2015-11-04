@@ -140,7 +140,7 @@ void fire()
 		setChooSpeed(127);
 	}
 	else if (SensorValue[feedSwitch] == 1 && time1[T3] > fireDelay && top) //fires
-
+	{
 		setFeedSpeed(0);
 		setChooSpeed(127);
 		chooState = FIRING;
