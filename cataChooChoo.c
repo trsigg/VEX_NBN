@@ -20,7 +20,7 @@ autoBehavior robotBehavior = NONE;
 int chooSpeed;
 
 int fireDelay = 1000; //amount of time between ball leaving feed and being fired
-int fireDuration = 750 //amount of time motors run during firing
+int fireDuration = 750; //amount of time motors run during firing
 int stillSpeed = 15;
 
 //debug
@@ -152,7 +152,7 @@ void fire()
 	}
 	else if (SensorValue[feedSwitch] == 1 && time1[T3] > fireDelay) //fires TODO: add a timer? and change delay
 	{
-		chooState = MOVING;
+		chooState = FIRING;
 		robotBehavior = NONE;
 		setFeedSpeed(0);
 		setChooSpeed(127);
