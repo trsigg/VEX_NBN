@@ -74,6 +74,28 @@ void feedControl()
 
 void cataChooChoo()
 {
+	if (chooState == REST && vexRT[Btn5U] == 1) //TODO: incorporate into switch statement?
+	{
+		chooState = COCKING;
+	}
+	else if (chooState == COCKING && SensorValue[chooSwitch] == 0)
+	{
+		chooState = STILL;
+	}
+	else if (chooState == STILL && vexRT[Btn5U] == 1)
+	{
+		chooState = MOVING;
+		clearTimer(T2);
+	}
+	else if (chooState == FIRING && time1[T2] > fireDuration)
+	{
+		chooState = REST;
+	}
+	else if (chooState == MANUAL_OVERRIDE && vexRT[Btn5D] == 0)
+	{
+		chooState = STILL;
+	}
+
 	if (vexRT[Btn5D] == 1)
 	{
 		chooState = MANUAL_OVERRIDE;
@@ -82,45 +104,16 @@ void cataChooChoo()
 	switch (chooState)
 	{
 	case REST:
-		if (vexRT[Btn5U] == 1)
-		{
-			chooState = COCKING;
-		}
-		else
-		{
-			chooSpeed = 0;
-		}
+		chooSpeed = 0;
 		break;
 	case COCKING:
-		if (SensorValue[chooSwitch] == 0)
-		{
-			chooState = STILL;
-		}
-		else
-		{
-			chooSpeed = 127;
-		}
+		chooSpeed = 127;
 		break;
 	case STILL:
-		if (vexRT[Btn5U] == 1)
-		{
-			chooState = FIRING;
-			clearTimer(T2);
-		}
-		else
-		{
-			chooSpeed = stillSpeed;
-		}
+		chooSpeed = stillSpeed;
 		break;
 	case FIRING:
-		if (time1[T2] > fireDuration)
-		{
-			chooState = STILL;
-		}
-		else
-		{
-			chooSpeed = 127;
-		}
+		chooSpeed = 127;
 		break;
 	case MANUAL_OVERRIDE:
 		chooSpeed = 127;
