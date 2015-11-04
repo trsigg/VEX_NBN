@@ -17,8 +17,6 @@ catapultState chooState = REST;
 enum autoBehavior { NONE, FEED, FIRE };
 autoBehavior robotBehavior = NONE;
 
-int overrideDirection = 1;
-
 int fireDelay = 1000; //amount of time between ball leaving feed and being fired
 int fireDuration = 750; //amount of time motors run during firing
 int stillSpeed = 15;
@@ -101,15 +99,10 @@ void cataChooChoo()
 		setChooSpeed(stillSpeed);
 	}
 
-	if (vexRT[Btn7D] == 1)
-	{
-		overrideDirection = -overrideDirection;
-	}
-
 	if (vexRT[Btn5D] == 1)
 	{
 		chooState = MANUAL_OVERRIDE;
-		setChooSpeed(127 * overrideDirection);
+		setChooSpeed((vexRT[7D] == 0) ? (127) : (-127));
 	}
 }
 
