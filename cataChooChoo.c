@@ -21,11 +21,6 @@ int fireDelay = 1000; //amount of time between ball leaving feed and being fired
 int fireDuration = 750; //amount of time motors run during firing
 int stillSpeed = 15;
 
-//debug
-int chooVal = SensorValue[chooSwitch];
-int feedVal = SensorValue[feedSwitch];
-int millis = time1[T2];
-
 void setFeedSpeed(int speed)
 {
 	motor[feedMe] = speed;
@@ -102,7 +97,7 @@ void cataChooChoo()
 	if (vexRT[Btn5D] == 1)
 	{
 		chooState = MANUAL_OVERRIDE;
-		setChooSpeed((vexRT[7D] == 0) ? (127) : (-127));
+		setChooSpeed((vexRT[Btn7D] == 0) ? (127) : (-127));
 	}
 }
 
@@ -155,10 +150,6 @@ void feedToTop()
 
 void updateAutoBehavior()
 {
-	if (vexRT[Btn7D] == 1)
-	{
-		robotBehavior = NONE;
-	}
 	else if (vexRT[Btn8D] == 1)
 	{
 		robotBehavior = FIRE;
@@ -169,40 +160,28 @@ void updateAutoBehavior()
 	}
 }
 
-void executeAutoBehavior()
-{
-	switch (robotBehavior)
-	{
-	case FIRE:
-		fire();
-		break;
-	case FEED:
-		feedToTop();
-	default:
-		robotBehavior = NONE;
-	}
-}
-
 task main()
 {
 	while (true)
 	{
-		//debug
-		chooVal = SensorValue[chooSwitch];
-		feedVal = SensorValue[feedSwitch];
-		millis = time1[T2];
-
-		updateAutoBehavior();
-
 		if (robotBehavior == NONE)
 		{
 			cataChooChoo();
 
 			feedControl();
+
+			updateAutoBehavior();
 		}
 		else
 		{
-			executeAutoBehavior();
+			if (robotBehavior == FIRE)
+			{
+				fire();
+			}
+			else
+			{
+				feedToTop();
+			}
 		}
 
 		if (vexRT[Btn7U] == 1 && vexRT[Btn7L] == 1)
