@@ -17,7 +17,7 @@ catapultState chooState = REST;
 enum autoBehavior { NONE, FEED, FIRE };
 autoBehavior robotBehavior = NONE;
 
-int chooSpeed;
+int overrideDirection = 1;
 
 int fireDelay = 1000; //amount of time between ball leaving feed and being fired
 int fireDuration = 750; //amount of time motors run during firing
@@ -77,52 +77,40 @@ void cataChooChoo()
 	if (chooState == REST && vexRT[Btn5U] == 1) //TODO: incorporate into switch statement?
 	{
 		chooState = COCKING;
+		setChooSpeed(127);
 	}
 	else if (chooState == COCKING && SensorValue[chooSwitch] == 0)
 	{
 		chooState = STILL;
+		setChooSpeed(stillSpeed);
 	}
 	else if (chooState == STILL && vexRT[Btn5U] == 1)
 	{
-		chooState = MOVING;
+		chooState = FIRING;
 		clearTimer(T2);
+		setChooSpeed(127);
 	}
 	else if (chooState == FIRING && time1[T2] > fireDuration)
 	{
 		chooState = REST;
+		setChooSpeed(0);
 	}
 	else if (chooState == MANUAL_OVERRIDE && vexRT[Btn5D] == 0)
 	{
 		chooState = STILL;
+		setChooSpeed(stillSpeed);
+	}
+
+	if (vexRT[Btn7D] == 1)
+	{
+		overrideDirection = -overrideDirection;
 	}
 
 	if (vexRT[Btn5D] == 1)
 	{
 		chooState = MANUAL_OVERRIDE;
+		setChooSpeed(127 * overrideDirection);
 	}
-
-	switch (chooState)
-	{
-	case REST:
-		chooSpeed = 0;
-		break;
-	case COCKING:
-		chooSpeed = 127;
-		break;
-	case STILL:
-		chooSpeed = stillSpeed;
-		break;
-	case FIRING:
-		chooSpeed = 127;
-		break;
-	case MANUAL_OVERRIDE:
-		chooSpeed = 127;
-		break;
-	default:
-		chooSpeed = 0;
-	}
-
-	setChooSpeed(chooSpeed);
 }
 
 void fire()
