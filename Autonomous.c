@@ -20,7 +20,7 @@ void setChooSpeed(int speed)
 	motor[choo3] = speed;
 }
 
-void fire() //fires from cocked position
+void fireFromCocking()
 {
 	setChooSpeed(127);
 	wait1Msec(750);
@@ -33,7 +33,7 @@ task main()
 	//cocks and fires initial preload
 	setChooSpeed(127);
 	while (SensorValue[chooSwitch] == 1) {}
-	fire();
+	fireFromCocking();
 
 	//feeds and fires three remaining balls
 	for (int i = 0; i < 3; i++)
@@ -45,6 +45,6 @@ task main()
 		wait1Msec(750);
 		setFeedSpeed(0);
 		wait1Msec(250);
-		fire();
+		fireFromCocking();
 	}
 }
