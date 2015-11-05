@@ -34,6 +34,7 @@ int fireDelay = 500; //amount of time between ball leaving feed and being fired 
 int fireDuration = 750; //amount of time motors run during firing
 int stillSpeed = 15;
 
+bool feeding = false;
 bool top = false;
 
 void setFeedSpeed(int speed)
@@ -67,17 +68,33 @@ void emergencyStop()
 
 void feedControl()
 {
-	if (vexRT[Btn6U] == 1)
+	if (!(feeding))
 	{
-		setFeedSpeed(127);
-	}
-	else if (vexRT[Btn6D] == 1)
-	{
-		setFeedSpeed(-127);
+		if (vexRT[Btn6U] == 1)
+		{
+			setFeedSpeed(127);
+		}
+		else if (vexRT[Btn6D] == 1)
+		{
+			setFeedSpeed(-127);
+		}
+		else
+		{
+			setFeedSpeed(0);
+
+			if (vexRT[Btn8L] == 1)
+			{
+				feeding = true;
+				setFeedSpeed(127);
+			}
+		}
 	}
 	else
 	{
-		setFeedSpeed(0);
+		if (vexRT[Btn8R] == 1 || vexRT[Btn6U] == 1 || vexRT[Btn6D] == 1)
+		{
+			feeding = false;
+		}
 	}
 }
 
