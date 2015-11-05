@@ -17,8 +17,8 @@
 5 - U - progress to next catapult state
   - D - manual override
 6 - U - feed forward
-	- D - feed backward
-7	-	U+L-cancel auto behaviors
+  - D - feed backward
+7 -	U+L-cancel auto behaviors
 	- D - reverse manual override
 8	- D - autofire
 	- U - feed to top
