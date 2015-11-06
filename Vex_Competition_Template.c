@@ -212,15 +212,16 @@ task autonomous()
 	fireFromCocking();
 
 	//feeds and fires three remaining balls
-	for (int i = 0; i < 3; i++)
+	for (int i = 0; i < 4; i++)
 	{
 		setFeedSpeed(127);
 		clearTimer(T1);
-		while (SensorValue[feedSwitch] == 1 && time1[T1] < 2500) {}
-		while (SensorValue[feedSwitch] == 0 && time1[T1] < 2500) {}
+		while (SensorValue[feedSwitch] == 1 && time1[T1] < 3000) {}
+		while (SensorValue[feedSwitch] == 0 && time1[T1] < 1000) {}
 		wait1Msec(750);
-		setFeedSpeed(0);
+		setFeedSpeed(-127);
 		wait1Msec(250);
+		setFeedSpeed(0);
 		fireFromCocking();
 	}
 }

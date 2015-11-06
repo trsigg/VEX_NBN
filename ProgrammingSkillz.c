@@ -13,12 +13,6 @@ void setChooSpeed(int speed)
 
 task main()
 {
-	while (true)
-	{
 	setChooSpeed(127);
-	wait1Msec(100);
-	while (SensorValue[chooSwitch] == 1) {}
-	setChooSpeed(15);
-	wait1Msec(50);
-	}
+	while (true){}
 }
