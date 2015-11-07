@@ -25,9 +25,9 @@ catapultState chooState = REST;
 enum autoBehavior { NONE, FEED, FIRE };
 autoBehavior robotBehavior = NONE;
 
-int fireDelay = 500; //amount of time between ball leaving feed and being fired during auto firing
-int fireDuration = 750; //amount of time motors run during firing
-int stillSpeed = 15;
+const int fireDelay = 500; //amount of time between ball leaving feed and being fired during auto firing
+const int fireDuration = 750; //amount of time motors run during firing
+const int stillSpeed = 15;
 
 bool feeding = false;
 bool top = false;
