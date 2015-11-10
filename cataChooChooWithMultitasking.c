@@ -1,3 +1,4 @@
+#pragma config(Sensor, dgtl1,  giraffeEncoder, sensorQuadEncoder)
 #pragma config(Sensor, dgtl3,  chooSwitch,     sensorDigitalIn)
 #pragma config(Sensor, dgtl4,  feedSwitch,     sensorDigitalIn)
 #pragma config(Motor,  port1,           choo1,         tmotorVex393_HBridge, openLoop, reversed)
@@ -24,26 +25,29 @@
 enum catapultState { BLOCKING, STILL, MANUAL_OVERRIDE };
 catapultState chooState = BLOCKING;
 
-const TButtonMasks progressCataChooChooBtn = Btn5U;
-const TButtonMasks manualOverrideBtn = Btn5D;
+int giraffeTarget;
+
+const TButtonMasks progressCataChooChooBtn = Btn6U;
+const TButtonMasks manualOverrideBtn = Btn6D;
 const TButtonMasks feedUpBtn = Btn6U;
 const TButtonMasks feedDownBtn = Btn6D;
-const TButtonMasks fireBtn = Btn7D;
-const TButtonMasks feedToTopBtn = Btn7U;
-const TButtonMasks continuousFeedBtn = Btn7L;
-const TButtonMasks continuousCatapultBtn = Btn7R;
-const TButtonMasks emergencyStopBtnOne = Btn8L;
-const TButtonMasks emergencyStopBtnTwo = Btn8U;
-const TButtonMasks reverseManualOverrideBtn = Btn8D;
-const TButtonMasks giraffeUpBtn = Btn8U;
-const TButtonMasks giraffeDownBtn = Btn8D;
-const TButtonMasks fullCourtBtn = Btn8L;
-const TButtonMasks netBtn = Btn8R;
+const TButtonMasks fireBtn = Btn8D;
+const TButtonMasks feedToTopBtn = Btn8U;
+const TButtonMasks continuousFeedBtn = Btn8L;
+const TButtonMasks continuousCatapultBtn = Btn8R;
+const TButtonMasks emergencyStopBtnOne = Btn7L;
+const TButtonMasks emergencyStopBtnTwo = Btn7U;
+const TButtonMasks reverseManualOverrideBtn = Btn7D;
+const TButtonMasks giraffeUpBtn = Btn7U;
+const TButtonMasks giraffeDownBtn = Btn7D;
+const TButtonMasks fullCourtBtn = Btn7L;
+const TButtonMasks netBtn = Btn7R;
 
 const int fireDuration = 750; //amount of time motors run during firing
 const int stillSpeed = 15;
-const int giraffeUpwardSpeed = 127;
-const int giraffeDownwardSpeed = 80;
+const int buttonDelay = 750;
+const int giraffeUpwardSpeed = 100;
+const int giraffeDownwardSpeed = -80;
 const int startingSquare = 70;
 const int fullCourt = 80;
 const int net = 40;
@@ -84,7 +88,26 @@ task giraffeControl()
 {
 	while(true)
 	{
-
+		while (true)
+		{
+			motor[giraffe] = 0;
+			while (vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0 && vexRT[netBtn] == 0 && vexRT[fullCourtBtn] == 0) { EndTimeSlice(); }
+			if (vexRT[giraffeUpBtn] == 1)
+			{
+				motor[giraffe] = giraffeUpwardSpeed;
+				while (vexRT[giraffeUpBtn] == 1) { EndTimeSlice(); }
+			}
+			else if (vexRT[giraffeDownBtn] == 1)
+			{
+				motor[giraffe] = giraffeDownwardSpeed;
+				while (vexRT[giraffeDownBtn] == 1) { EndTimeSlice(); }
+			}
+			/*else //net or fullCourt Btns are pressed
+			{
+				giraffeTarget = (vexRT[fullCourtBtn] == fullCourt) ? (fullCourt) : (net);
+				startTask(giraffeToTarget);
+			}*/
+		}
 	}
 }
 
@@ -118,7 +141,7 @@ task cataChooChoo()
 		case BLOCKING:
 			setChooSpeed(0);
 
-			while (vexRT[progressCataChooChooBtn] == 0 && vexRT[manualOverrideBtn] == 0 && vexRT[continuousCatapultBtn] == 0) { EndTimeSlice(); }
+			while (vexRT[progressCataChooChooBtn] == 0 && vexRT[manualOverrideBtn] == 0) { EndTimeSlice(); }
 
 			if (vexRT[progressCataChooChooBtn] == 1)
 			{
@@ -136,7 +159,7 @@ task cataChooChoo()
 		case STILL:
 			setChooSpeed(stillSpeed);
 
-			while (vexRT[progressCataChooChooBtn] == 0 && vexRT[manualOverrideBtn] == 0 && vexRT[continuousCatapultBtn] == 0) { EndTimeSlice(); }
+			while (vexRT[progressCataChooChooBtn] == 0 && vexRT[manualOverrideBtn] == 0) { EndTimeSlice(); }
 
 			if (vexRT[manualOverrideBtn] == 1)
 			{
@@ -144,7 +167,6 @@ task cataChooChoo()
 				setChooSpeed(127);
 				wait1Msec(fireDuration);
 				chooState = BLOCKING;
-
 			}
 			else
 			{
@@ -200,6 +222,27 @@ task feedToTop()
 	setFeedSpeed(0);
 }
 
+task giraffeToTarget() //TODO: implement error correction using this function
+{
+	stopTask(giraffeControl);
+	while (SensorValue[giraffeEncoder] != giraffeTarget)
+	{
+		if (SensorValue[giraffeEncoder] > giraffeTarget)
+		{
+			motor[giraffe] = -127;
+			while(SensorValue[giraffeEncoder] > giraffeTarget) { EndTimeSlice(); }
+			motor[giraffe] = 0;
+		}
+		else
+		{
+			motor[giraffe] = 127;
+			while(SensorValue[giraffeEncoder] < giraffeTarget) { EndTimeSlice(); }
+			motor[giraffe] = 0;
+		}
+	}
+	startTask(giraffeControl);
+}
+
 task fire()
 {
 	stopTask(cataChooChoo);
@@ -227,7 +270,7 @@ task autoBehaviors()
 {
 	while (true)
 	{
-		while (vexRT[fireBtn] == 0 && vexRT[feedToTopBtn] == 0 && vexRT[continuousCatapultBtn] == 0 && vexRT[continuousFeedBtn] == 0) { EndTimeSlice(); }
+		while (vexRT[fireBtn] == 0 && vexRT[feedToTopBtn] == 0 && ((vexRT[continuousCatapultBtn] == 0 || vexRT[continuousFeedBtn] == 0) && time1) { EndTimeSlice(); }
 
 		if (vexRT[fireBtn] == 1)
 		{
@@ -257,12 +300,11 @@ task autoBehaviors()
 
 void emergencyStop()
 {
-	stopTask(cataChooChoo);
-	stopTask(feedControl);
-	stopTask(fire);
-	stopTask(feedToTop);
-	stopTask(cockCatapult);
+	stopAllTasks();
 
+	startTask(usercontrol);
+	startTask(autoBehaviors);
+	startTask(giraffeControl);
 	startTask(cataChooChoo);
 	startTask(feedControl);
 }
