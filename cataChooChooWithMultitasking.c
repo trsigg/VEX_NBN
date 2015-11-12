@@ -89,7 +89,7 @@ task giraffeControl()
 {
 	while(true)
 	{
-		motor[giraffe] = griraffeStillSpeed;
+		motor[giraffe] = giraffeStillSpeed;
 		while (vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0 && vexRT[netBtn] == 0 && vexRT[fullCourtBtn] == 0) { EndTimeSlice(); }
 		if (vexRT[giraffeUpBtn] == 1)
 		{
