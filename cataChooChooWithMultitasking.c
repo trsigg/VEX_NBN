@@ -345,6 +345,8 @@ void pre_auton()
 
 task autonomous()
 {
+	motor[giraffe] = giraffeStillSpeed;
+
   //cocks and fires initial preload
 	setChooSpeed(127);
 	while (SensorValue[chooSwitch] == 1) {}

@@ -346,8 +346,25 @@ void pre_auton()
 task autonomous()
 {
 	motor[giraffe] = giraffeStillSpeed;
-  setChooSpeed(127);
-  while (true) {}
+	setChooSpeed(127);
+	for (int ballsFired = 0; ballsFired < 3; ballsFired++) //change to 26
+	{
+		while (SensorValue[chooSwitch] == 1) {}
+		wait1Msec(fireDuration);
+	}
+	setChooSpeed(0);
+	setFeedSpeed(127);
+	setDriveSpeed(127, 127);
+	motor[giraffe] = -127;
+	wait1Msec(100);
+	motor[giraffe] = 0;
+	wait1Msec(900);
+	setDriveSpeed(-127, 127);
+	setFeedSpeed(0);
+	wait1Msec(250);
+	setDriveSpeed(0, 0);
+	startTask(fire);
+	while (true) {}
 }
 
 task usercontrol()
