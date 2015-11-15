@@ -23,14 +23,28 @@
 #include "Vex_Competition_Includes.c"   //Main competition background code...do not modify!
 
 enum catapultState { BLOCKING, STILL, MANUAL_OVERRIDE };
-catapultState chooState = BLOCKING;
-catapultState cataState = BLOCKING;
+
+typedef union
+{
+	struct
+	{
+		int power;
+		tSensors cockedSwitch;
+		tSensors ballSensor;
+		catapultState state;
+	};
+
+	tMotor motors[3];
+} catapult;
+
+catapult catapults[2];
 
 int giraffeTarget;
 bool startTasksAfterCompletion;
 bool continuousFeedRunning = false;
 bool continuousCatapultRunning = false;
 bool continuousFire = false;
+bool catapultsInitiated = false;
 
 //remote 1
 //group 5
@@ -57,8 +71,7 @@ const TButtonMasks manualOverrideBtnTwo = Btn5DXmtr2;
 //group 7
 const TButtonMasks continuousFeedBtn = Btn7LXmtr2;
 const TButtonMasks continuousCatapultBtn = Btn7RXmtr2;
-const TButtonMasks endCataCataChooChooBtn = Btn7UXmtr2;
-const TButtonMasks startCataCataChooChooBtn = Btn7DXmtr2;
+const TButtonMasks toggleCataCataChooChooBtn = Btn7UXmtr2;
 //group 8
 const TButtonMasks feedToTopBtn = Btn8LXmtr2;
 const TButtonMasks progressBtn = Btn8RXmtr2;
@@ -72,6 +85,18 @@ const int giraffeStillSpeed = 15;
 const int startingSquare = 70;
 const int fullCourt = 80;
 const int net = 40;
+const int btnSize = sizeof(progressChooBtn);
+const TButtonMasks autoBehaviorBtns[7] = {continuousFireBtn, fireOnceBtn, feedToTopBtn, continuousCatapultBtn, continuousFeedBtn, loadBtn, toggleCataCataChooChooBtn};
+
+//misc functions
+bool checkBtns(TButtonMasks *buttons)
+{
+	for (int i = 0; i < sizeof(buttons) / btnSize; i++)
+	{
+		if (SensorValue[buttons[i]] == 1) return true;
+	}
+	return false;
+}
 
 //set functions region
 void setFeedSpeed(int speed)
@@ -214,9 +239,9 @@ task cataCataChooChoo() //cataChooChoo control for second remote
 		switch (cataState)
 		{
 		case BLOCKING:
-			setcataSpeed(0);
+			setCataSpeed(0);
 
-			while (vexRT[progressCatacatacataBtn] == 0 && vexRT[manualOverrideBtn] == 0) { EndTimeSlice(); }
+			while (vexRT[progressCataBtn] == 0 && vexRT[manualOverrideBtn] == 0) { EndTimeSlice(); }
 
 			if (vexRT[progressCatacatacataBtn] == 1)
 			{
@@ -232,14 +257,14 @@ task cataCataChooChoo() //cataChooChoo control for second remote
 			}
 
 		case STILL:
-			setcataSpeed(stillSpeed);
+			setCataSpeed(stillSpeed);
 
 			while (vexRT[progressCatacatacataBtn] == 0 && vexRT[manualOverrideBtn] == 0) { EndTimeSlice(); }
 
 			if (vexRT[progressCatacatacataBtn] == 1)
 			{
 				//fires
-				setcataSpeed(127);
+				setCataSpeed(127);
 				wait1Msec(fireDuration);
 				cataState = BLOCKING;
 			}
@@ -250,7 +275,7 @@ task cataCataChooChoo() //cataChooChoo control for second remote
 			break;
 
 		default: //cataState is MANUAL_OVERRIDE
-			setcataSpeed(127);
+			setCataSpeed(127);
 			while (vexRT[manualOverrideBtn] == 1) { EndTimeSlice(); }
 			cataState = STILL;
 		}
@@ -364,7 +389,7 @@ task autoBehaviors()
 {
 	while (true)
 	{
-		while (vexRT[continuousFireBtn] == 0 && vexRT[fireOnceBtn] == 0 && vexRT[feedToTopBtn] == 0 && vexRT[continuousCatapultBtn] == 0 && vexRT[continuousFeedBtn] == 0) { EndTimeSlice(); }
+		while (!checkBtns(autoBehaviorBtns)) { EndTimeSlice(); }
 
 		if (vexRT[continuousfireBtn] == 1)
 		{
@@ -441,6 +466,26 @@ task autonomous()
 
 task usercontrol()
 {
+	if (!catapultsInitiated)
+	{
+		catapult choo;
+		choo.power = 0;
+		choo.cockedSwitch = chooSwitch;
+		choo.ballSensor = chooPhotoresistor;
+		choo.state = BLOCKING;
+		tMotor chooMotors = {choo1, choo2, choo3};
+		choo.motors = chooMotors;
+
+		catapult cata;
+		cata.power = 0;
+		cata.cockedSwitch = cataSwitch;
+		cata.ballSensor = cataPhotoresistor;
+		cata.state = BLOCKING;
+		tMotor cataMotors = {cata1, cata2};
+		cata.motors = cataMotors;
+
+		catapultsInitiated = true;
+	}
 	startTask(cataChooChoo);
 	startTask(feedControl);
 	startTask(autoBehaviors);
