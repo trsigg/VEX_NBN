@@ -34,6 +34,6 @@ void loop()
   motor.write(motorPower);
   currentMillis = millis();
   wheelSpeed = encoder.getRawPosition() / (currentMillis - prevMillis);
-  prevMillis = currentMillis;
   encoder.zero();
+  prevMillis = currentMillis;
 }
