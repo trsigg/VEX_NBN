@@ -26,27 +26,30 @@ enum catapultState { BLOCKING, STILL, MANUAL_OVERRIDE };
 catapultState chooState = BLOCKING;
 
 int giraffeTarget;
-bool startTasksAfterCompletion;
-bool continuousFeedRunning = false;
-bool continuousCatapultRunning = false;
+bool startTasksAfterCompletion = true;
+bool loadRunning = false;
+bool continuousFire = false;
 
-const TButtonMasks progressCataChooChooBtn = Btn5U;
+//remote 1
+//group 5
+const TButtonMasks progresscataChooChooBtn = Btn5U;
 const TButtonMasks manualOverrideBtn = Btn5D;
+const TButtonMasks stopDCLfireBtn = Btn5U;
+//group 6
 const TButtonMasks feedUpBtn = Btn6U;
 const TButtonMasks feedDownBtn = Btn6D;
-const TButtonMasks fireBtn = Btn8D;
-const TButtonMasks progressFireBtnTwo = Btn8D;
-const TButtonMasks feedToTopBtn = Btn8U;
-const TButtonMasks progressFireBtnOne = Btn8U;
-const TButtonMasks continuousFeedBtn = Btn8L;
-const TButtonMasks continuousCatapultBtn = Btn8R;
-const TButtonMasks emergencyStopBtnOne = Btn7L;
-const TButtonMasks emergencyStopBtnTwo = Btn7U;
-const TButtonMasks reverseManualOverrideBtn = Btn7D;
-const TButtonMasks giraffeUpBtn = Btn7R;
+//group 7
+const TButtonMasks giraffeUpBtn = Btn7U;
 const TButtonMasks giraffeDownBtn = Btn7D;
 const TButtonMasks fullCourtBtn = Btn7L;
 const TButtonMasks netBtn = Btn7R;
+//group 8
+const TButtonMasks continuousFireBtn = Btn8D;
+const TButtonMasks fireOnceBtn = Btn8U;
+const TButtonMasks loadBtn = Btn8L;
+const TButtonMasks emergencyStopBtn = Btn8R;
+const TButtonMasks startDCLfireBtnOne = Btn8R;
+const TButtonMasks startDCLfireBtnTWo = Btn7L;
 
 const int fireDuration = 750; //amount of time motors run during firing
 const int stillSpeed = 15;
@@ -87,6 +90,11 @@ void fireFromCocking()
 	wait1Msec(fireDuration);
 	while (SensorValue[chooSwitch] == 1) {}
 	setChooSpeed(15);
+}
+
+void DCLfire() //sets both catapults to continuous fire mode
+{
+	while (vexRT[stopDCLfireBtn] == 0) { setDriveSpeed(vexRT[Ch2], vexRT[Ch3]); }
 }
 
 //user control region
@@ -138,8 +146,6 @@ task feedControl()
 
 task cataChooChoo()
 {
-	int initialReverse = vexRT[reverseManualOverrideBtn];
-
 	while (true)
 	{
 		switch (chooState)
@@ -181,12 +187,8 @@ task cataChooChoo()
 			break;
 
 		default: //chooState is MANUAL_OVERRIDE
-			while (vexRT[manualOverrideBtn] == 1)
-			{
-				setChooSpeed((vexRT[reverseManualOverrideBtn] == 0) ? (127) : (-127));
-				initialReverse = vexRT[reverseManualOverrideBtn];
-				while (vexRT[manualOverrideBtn] == 1 && vexRT[reverseManualOverrideBtn] == initialReverse) { EndTimeSlice(); }
-			}
+			setChooSpeed(127);
+			while (vexRT[manualOverrideBtn] == 1) { EndTimeSlice(); }
 			chooState = STILL;
 		}
 	}
@@ -194,34 +196,6 @@ task cataChooChoo()
 //end user control region
 
 //autobehavior region
-task continuousCatapult()
-{
-	stopTask(cataChooChoo);
-	continuousCatapultRunning = true;
-	setChooSpeed(127);
-	while(vexRT[continuousCatapultBtn] == 1) { EndTimeSlice(); } //waits for button to be released
-	while(vexRT[continuousCatapultBtn] == 0) { EndTimeSlice(); }
-	setChooSpeed(0);
-	startTask(cataChooChoo);
-
-	while(vexRT[continuousCatapultBtn] == 1) { EndTimeSlice(); }
-	continuousCatapultRunning = false;
-}
-
-task continuousFeed()
-{
-	stopTask(feedControl);
-	continuousFeedRunning = true;
-	setFeedSpeed(127);
-	while(vexRT[continuousFeedBtn] == 1) { EndTimeSlice(); } //waits for button to be released
-	while(vexRT[continuousFeedBtn] == 0) { EndTimeSlice(); }
-	setFeedSpeed(0);
-	startTask(feedControl);
-
-	while(vexRT[continuousFeedBtn] == 1) { EndTimeSlice(); }
-	continuousFeedRunning = false;
-}
-
 task cockCatapult()
 {
 	setChooSpeed((SensorValue[chooSwitch] == 1) ? (127) : (0));
@@ -231,16 +205,9 @@ task cockCatapult()
 
 task feedToTop()
 {
-	stopTask(feedControl);
-
 	setFeedSpeed((SensorValue[feedSwitch] == 1) ? (127) : (0));
 	while (SensorValue[feedSwitch] == 1) { EndTimeSlice() ;}
 	setFeedSpeed(0);
-
-	if (startTasksAfterCompletion)
-	{
-		startTask(feedControl);
-	}
 }
 
 task giraffeToTarget() //TODO: implement error correction using this function
@@ -264,58 +231,84 @@ task giraffeToTarget() //TODO: implement error correction using this function
 	startTask(giraffeControl);
 }
 
+task load()
+{
+	loadRunning = true;
+
+	stopTask(cataChooChoo);
+	stopTask(feedControl);
+
+	startTask(cockCatapult);
+	startTask(feedToTop);
+	while ((SensorValue[chooSwitch] == 1 || SensorValue[feedSwitch] == 1)) { EndTimeSlice(); }
+
+	stopTask(cockCatapult);
+	setChooSpeed(stillSpeed);
+	stopTask(feedToTop);
+	setFeedSpeed(127);
+
+	while (SensorValue[feedSwitch] == 0) { EndTimeSlice(); }
+	wait1Msec(500);
+	setFeedSpeed(-127);
+	wait1Msec(100);
+	setFeedSpeed(0);
+
+	if (startTasksAfterCompletion)
+	{
+		startTask(cataChooChoo);
+		startTask(feedControl);
+	}
+	else
+	{
+		startTasksAfterCompletion = true;
+	}
+
+	loadRunning = false;
+}
+
 task fire()
 {
-	stopTask(cataChooChoo);
-
-	while (true) //cancel with something other than emergency stop
+	do
 	{
-		startTask(cockCatapult);
-		startTasksAfterCompletion = true;
-		startTask(feedToTop);
-		while ((SensorValue[chooSwitch] == 1 || SensorValue[feedSwitch] == 1) && vexRT[progressFireBtnOne] == 0) { EndTimeSlice(); }
+		startTasksAfterCompletion = false;
+		startTask(load);
 
-		stopTask(cockCatapult);
-		setChooSpeed(stillSpeed);
-		stopTask(feedToTop);
-		setFeedSpeed(127);
+		while (loadRunning) { EndTimeSlice(); }
 
-		while (SensorValue[feedSwitch] == 0 && vexRT[progressFireBtnTwo] == 0) { EndTimeSlice(); }
-		wait1Msec(500);
-		setFeedSpeed(-127);
-		wait1Msec(100);
-		setFeedSpeed(0);
 		setChooSpeed(127);
 		wait1Msec(fireDuration);
 		setChooSpeed(0);
-	}
+	} while(continuousFire && vexRT[continuousFireBtn] == 0)
 
 	startTask(cataChooChoo);
 	startTask(feedControl);
+	continuousFire = false;
 }
 
 task autoBehaviors()
 {
 	while (true)
 	{
-		while (vexRT[fireBtn] == 0 && vexRT[feedToTopBtn] == 0 && vexRT[continuousCatapultBtn] == 0 && vexRT[continuousFeedBtn] == 0) { EndTimeSlice(); }
+		while (vexRT[continuousFireBtn] == 0 && vexRT[fireOnceBtn] == 0 && vexRT[loadBtn] == 0 && (vexRT[startDCLfireBtnOne] == 0 || vexRT[startDCLfireBtnTwo] == 0)) { EndTimeSlice(); }
 
-		if (vexRT[fireBtn] == 1)
+		if (vexRT[continuousFireBtn] == 1)
 		{
+			continuousFire = true;
 			startTask(fire);
 		}
-		else if (vexRT[feedToTopBtn] == 1)
+		else if (vexRT[fireOnceBtn] == 1)
+		{
+			continuousFire = false;
+			startTask(fire);
+		}
+		else if (vexRT[loadBtn] == 1)
 		{
 			startTasksAfterCompletion = true;
-			startTask(feedToTop);
+			startTask(load);
 		}
-		else if (vexRT[continuousCatapultBtn] == 1 && !continuousCatapultRunning)
+		else if (vexRT[startDCLfireBtnOne] == 1 && vexRT[startDCLfireBtnTwo] == 1)
 		{
-			startTask(continuousCatapult);
-		}
-		else if (vexRT[continuousFeedBtn] == 1 && !continuousFeedRunning)
-		{
-			startTask(continuousFeed);
+			DCLfire();
 		}
 	}
 }
@@ -326,8 +319,6 @@ void emergencyStop()
 	stopTask(giraffeControl);
 	stopTask(feedControl);
 	stopTask(cataChooChoo);
-	stopTask(continuousCatapult);
-	stopTask(continuousFeed);
 	stopTask(cockCatapult);
 	stopTask(feedToTop);
 	stopTask(giraffeToTarget);
@@ -369,6 +360,8 @@ task autonomous()
 
 task usercontrol()
 {
+	DCLfire();
+
 	startTask(cataChooChoo);
 	startTask(feedControl);
 	startTask(autoBehaviors);
@@ -376,7 +369,7 @@ task usercontrol()
 
 	while (true)
 	{
-		while (vexRT[emergencyStopBtnOne] == 0 || vexRT[emergencyStopBtnTwo] == 0)
+		while (vexRT[emergencyStopBtn] == 0)
 		{
 			setDriveSpeed(vexRT[Ch2], vexRT[Ch3]);
 			EndTimeSlice();
