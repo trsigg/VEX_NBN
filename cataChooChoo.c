@@ -1,3 +1,5 @@
+#pragma config(Sensor, in1,    chooResistor,   sensorReflection)
+#pragma config(Sensor, in2,    cataResistor,   sensorReflection)
 #pragma config(Sensor, dgtl1,  giraffeEncoder, sensorQuadEncoder)
 #pragma config(Sensor, dgtl3,  chooSwitch,     sensorDigitalIn)
 #pragma config(Sensor, dgtl4,  feedSwitch,     sensorDigitalIn)
@@ -32,7 +34,7 @@ bool continuousFire = false;
 
 //remote 1
 //group 5
-const TButtonMasks progresscataChooChooBtn = Btn5U;
+const TButtonMasks progressCataChooChooBtn = Btn5U;
 const TButtonMasks manualOverrideBtn = Btn5D;
 const TButtonMasks stopDCLfireBtn = Btn5U;
 //group 6
@@ -49,17 +51,18 @@ const TButtonMasks fireOnceBtn = Btn8U;
 const TButtonMasks loadBtn = Btn8L;
 const TButtonMasks emergencyStopBtn = Btn8R;
 const TButtonMasks startDCLfireBtnOne = Btn8R;
-const TButtonMasks startDCLfireBtnTWo = Btn7L;
+const TButtonMasks startDCLfireBtnTwo = Btn7L;
 
 const int fireDuration = 750; //amount of time motors run during firing
 const int stillSpeed = 15;
-const int buttonDelay = 750;
 const int giraffeUpwardSpeed = 127;
 const int giraffeDownwardSpeed = -80;
 const int giraffeStillSpeed = 15;
 const int startingSquare = 70;
 const int fullCourt = 80;
 const int net = 40;
+const int resistorCutoff = 75;
+const int feedBackwardTime = 250;
 
 //set functions region
 void setFeedSpeed(int speed)
@@ -247,11 +250,14 @@ task load()
 	stopTask(feedToTop);
 	setFeedSpeed(127);
 
-	while (SensorValue[feedSwitch] == 0) { EndTimeSlice(); }
-	wait1Msec(500);
-	setFeedSpeed(-127);
-	wait1Msec(100);
-	setFeedSpeed(0);
+	while (SensorValue[chooResistor] > resistorCutoff) { EndTimeSlice(); }
+
+	if (SensorValue[feedSwitch] == 0)
+	{
+		setFeedSpeed(-127);
+		wait1Msec(feedBackwardTime);
+		setFeedSpeed(0);
+	}
 
 	if (startTasksAfterCompletion)
 	{
@@ -278,7 +284,7 @@ task fire()
 		setChooSpeed(127);
 		wait1Msec(fireDuration);
 		setChooSpeed(0);
-	} while(continuousFire && vexRT[continuousFireBtn] == 0)
+	} while(continuousFire && vexRT[continuousFireBtn] == 0);
 
 	startTask(cataChooChoo);
 	startTask(feedControl);
