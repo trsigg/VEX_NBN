@@ -64,6 +64,7 @@ const int fullCourt = 80;
 const int net = 40;
 const int resistorCutoff = 75;
 const int feedBackwardTime = 250;
+const int giraffeError = 2;
 
 //set functions region
 void setFeedSpeed(int speed)
@@ -104,27 +105,48 @@ void DCLfire() //sets both catapults to continuous fire mode
 //user control region
 task giraffeControl()
 {
+	int giraffePower = giraffeStillSpeed;
+
 	while (true)
 	{
-		while (SensorValue[giraffeEncoder]
+		motor[giraffe] = giraffePower;
 
-		motor[giraffe] = giraffeStillSpeed;
-		while (vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0 && vexRT[netBtn] == 0 && vexRT[fullCourtBtn] == 0) { EndTimeSlice(); }
+		while (SensorValue[giraffeEncoder] > (giraffeTarget - giraffeError) && SensorValue[giraffeEncoder] < (giraffeTarget + giraffeError) && vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0 && vexRT[netBtn] == 0 && vexRT[fullCourtBtn] == 0) { EndTimeSlice(); }
+
 		if (vexRT[giraffeUpBtn] == 1)
 		{
 			motor[giraffe] = giraffeUpwardSpeed;
 			while (vexRT[giraffeUpBtn] == 1) { EndTimeSlice(); }
+			giraffeTarget = SensorValue[giraffeEncoder];
 		}
 		else if (vexRT[giraffeDownBtn] == 1)
 		{
 			motor[giraffe] = giraffeDownwardSpeed;
 			while (vexRT[giraffeDownBtn] == 1) { EndTimeSlice(); }
+			giraffeTarget = SensorValue[giraffeEncoder];
 		}
-		/*else //net or fullCourt Btns are pressed
+		else if (vexRT[fullCourtBtn] == 1 || vexRT[netBtn] == 1)
 		{
 			giraffeTarget = (vexRT[fullCourtBtn] == fullCourt) ? (fullCourt) : (net);
-			startTask(giraffeToTarget);
-		}*/
+		}
+		else
+		{
+			while (SensorValue[giraffeEncoder] < (giraffeTarget - giraffeError) || SensorValue[giraffeEncoder] > (giraffeTarget + giraffeError))
+			{
+				if (SensorValue[giraffeEncoder] > giraffeTarget)
+				{
+					motor[giraffe] = -127;
+					while(SensorValue[giraffeEncoder] > giraffeTarget) { EndTimeSlice(); }
+					motor[giraffe] = giraffeStillSpeed;
+				}
+				else
+				{
+					motor[giraffe] = 127;
+					while(SensorValue[giraffeEncoder] < giraffeTarget) { EndTimeSlice(); }
+					motor[giraffe] = giraffeStillSpeed;
+				}
+			}
+		}
 	}
 }
 
@@ -216,21 +238,7 @@ task feedToTop()
 task giraffeToTarget() //TODO: implement error correction using this function
 {
 	stopTask(giraffeControl);
-	while (SensorValue[giraffeEncoder] != giraffeTarget)
-	{
-		if (SensorValue[giraffeEncoder] > giraffeTarget)
-		{
-			motor[giraffe] = -127;
-			while(SensorValue[giraffeEncoder] > giraffeTarget) { EndTimeSlice(); }
-			motor[giraffe] = giraffeStillSpeed;
-		}
-		else
-		{
-			motor[giraffe] = 127;
-			while(SensorValue[giraffeEncoder] < giraffeTarget) { EndTimeSlice(); }
-			motor[giraffe] = giraffeStillSpeed;
-		}
-	}
+
 	startTask(giraffeControl);
 }
 
