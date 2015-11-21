@@ -128,24 +128,23 @@ task giraffeControl()
 		else if (vexRT[fullCourtBtn] == 1 || vexRT[netBtn] == 1)
 		{
 			giraffeTarget = (vexRT[fullCourtBtn] == fullCourt) ? (fullCourt) : (net);
+			while (vexRT[netBtn] == 0 && vexRT[fullCourtBtn] == 0) { EndTimeSlice(); }
 		}
 		else
 		{
-			while (SensorValue[giraffeEncoder] < (giraffeTarget - giraffeError) || SensorValue[giraffeEncoder] > (giraffeTarget + giraffeError))
+			if (SensorValue[giraffeEncoder] > giraffeTarget)
 			{
-				if (SensorValue[giraffeEncoder] > giraffeTarget)
-				{
-					motor[giraffe] = -127;
-					while(SensorValue[giraffeEncoder] > giraffeTarget) { EndTimeSlice(); }
-					motor[giraffe] = giraffeStillSpeed;
-				}
-				else
-				{
-					motor[giraffe] = 127;
-					while(SensorValue[giraffeEncoder] < giraffeTarget) { EndTimeSlice(); }
-					motor[giraffe] = giraffeStillSpeed;
-				}
+				motor[giraffe] = -127;
+				while (SensorValue[giraffeEncoder] > giraffeTarget && vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0 && vexRT[netBtn] == 0 && vexRT[fullCourtBtn] == 0) { EndTimeSlice(); }
+				motor[giraffe] = giraffeStillSpeed;
 			}
+			else
+			{
+				motor[giraffe] = 127;
+				while (SensorValue[giraffeEncoder] < giraffeTarget && vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0 && vexRT[netBtn] == 0 && vexRT[fullCourtBtn] == 0) { EndTimeSlice(); }
+				motor[giraffe] = giraffeStillSpeed;
+			}
+
 		}
 	}
 }
