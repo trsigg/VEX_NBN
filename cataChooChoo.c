@@ -28,7 +28,6 @@
 enum catapultState { BLOCKING, STILL, MANUAL_OVERRIDE };
 catapultState chooState = BLOCKING;
 
-int giraffeTarget;
 bool startTasksAfterCompletion = true;
 bool loadRunning = false;
 bool continuousFire = false;
@@ -59,9 +58,9 @@ const int stillSpeed = 15;
 const int giraffeUpwardSpeed = 127;
 const int giraffeDownwardSpeed = -80;
 const int giraffeStillSpeed = 15;
-const int startingSquare = 70;
-const int fullCourt = 80;
-const int net = 40;
+const int startingSquare = 0;
+const int fullCourt = 20;
+const int net = -50;
 const int resistorCutoff = 75;
 const int feedBackwardTime = 250;
 const int giraffeError = 2;
@@ -106,6 +105,7 @@ void DCLfire() //sets both catapults to continuous fire mode
 task giraffeControl()
 {
 	int giraffePower = giraffeStillSpeed;
+	int giraffeTarget = startingSquare;
 
 	while (true)
 	{
@@ -144,7 +144,6 @@ task giraffeControl()
 				while (SensorValue[giraffeEncoder] < giraffeTarget && vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0 && vexRT[netBtn] == 0 && vexRT[fullCourtBtn] == 0) { EndTimeSlice(); }
 				motor[giraffe] = giraffeStillSpeed;
 			}
-
 		}
 	}
 }
@@ -345,6 +344,7 @@ void emergencyStop()
 void pre_auton()
 {
   bStopTasksBetweenModes = true;
+  SensorValue[giraffeEncoder] == 0;
 }
 
 task autonomous()
