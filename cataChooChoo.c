@@ -30,7 +30,11 @@ catapultState chooState = BLOCKING;
 
 bool startTasksAfterCompletion = true;
 bool loadRunning = false;
+bool feedToTopRunning = false;
+bool cockCatapultRunning = false;
 bool continuousFire = false;
+bool firstStart = true;
+int clicks;
 
 //remote 1
 //group 5
@@ -55,9 +59,9 @@ const TButtonMasks startDCLfireBtnTwo = Btn7L;
 
 const int fireDuration = 750; //amount of time motors run during firing
 const int stillSpeed = 15;
-const int giraffeUpwardSpeed = 127;
-const int giraffeDownwardSpeed = -80;
-const int giraffeStillSpeed = 15;
+const int giraffeUpwardPower = 127;
+const int giraffeDownwardPower = -80;
+const int giraffeStillPower = 15;
 const int startingSquare = 0;
 const int fullCourt = 20;
 const int net = -50;
@@ -66,20 +70,20 @@ const int feedBackwardTime = 250;
 const int giraffeError = 2;
 
 //set functions region
-void setFeedSpeed(int speed)
+void setFeedPower(int power)
 {
-	motor[feedMe] = speed;
-	motor[seymore] = speed;
+	motor[feedMe] = power;
+	motor[seymore] = power;
 }
 
-void setChooSpeed(int speed)
+void setChooPower(int power)
 {
-	motor[choo1] = speed;
-	motor[choo2] = speed;
-	motor[choo3] = speed;
+	motor[choo1] = power;
+	motor[choo2] = power;
+	motor[choo3] = power;
 }
 
-void setDriveSpeed(int right, int left)
+void setDrivePower(int right, int left)
 {
 	motor[right1] = right;
 	motor[right2] = right;
@@ -88,23 +92,46 @@ void setDriveSpeed(int right, int left)
 }
 //end set functions region
 
+//robot tasks region
 void fireFromCocking()
 {
-	setChooSpeed(127);
-	wait1Msec(fireDuration);
+	setChooPower(127);
 	while (SensorValue[chooSwitch] == 1) {}
-	setChooSpeed(15);
+	setChooPower(15);
 }
 
 void DCLfire() //sets both catapults to continuous fire mode
 {
-	while (vexRT[stopDCLfireBtn] == 0) { setDriveSpeed(vexRT[Ch2], vexRT[Ch3]); }
+	setChooPower(127);
+	while (vexRT[stopDCLfireBtn] == 0)
+	{
+		setDrivePower(vexRT[Ch2], vexRT[Ch3]);
+
+		if (vexRT[giraffeUpBtn] == 1)
+		{
+			motor[giraffe] = giraffeUpwardPower;
+		}
+		else if (vexRT[giraffeDownBtn] == 1)
+		{
+			motor[giraffe] = giraffeDownwardPower;
+		}
+		else
+		{
+			motor[giraffe] = 0;
+		}
+	}
 }
+
+task driveStraight()
+{
+
+}
+//end robot tasks region
 
 //user control region
 task giraffeControl()
 {
-	int giraffePower = giraffeStillSpeed;
+	int giraffePower = giraffeStillPower;
 	int giraffeTarget = startingSquare;
 
 	while (true)
@@ -115,13 +142,13 @@ task giraffeControl()
 
 		if (vexRT[giraffeUpBtn] == 1)
 		{
-			motor[giraffe] = giraffeUpwardSpeed;
+			motor[giraffe] = giraffeUpwardPower;
 			while (vexRT[giraffeUpBtn] == 1) { EndTimeSlice(); }
 			giraffeTarget = SensorValue[giraffeEncoder];
 		}
 		else if (vexRT[giraffeDownBtn] == 1)
 		{
-			motor[giraffe] = giraffeDownwardSpeed;
+			motor[giraffe] = giraffeDownwardPower;
 			while (vexRT[giraffeDownBtn] == 1) { EndTimeSlice(); }
 			giraffeTarget = SensorValue[giraffeEncoder];
 		}
@@ -136,13 +163,13 @@ task giraffeControl()
 			{
 				motor[giraffe] = -127;
 				while (SensorValue[giraffeEncoder] > giraffeTarget && vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0 && vexRT[netBtn] == 0 && vexRT[fullCourtBtn] == 0) { EndTimeSlice(); }
-				motor[giraffe] = giraffeStillSpeed;
+				motor[giraffe] = giraffeStillPower;
 			}
 			else
 			{
 				motor[giraffe] = 127;
 				while (SensorValue[giraffeEncoder] < giraffeTarget && vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0 && vexRT[netBtn] == 0 && vexRT[fullCourtBtn] == 0) { EndTimeSlice(); }
-				motor[giraffe] = giraffeStillSpeed;
+				motor[giraffe] = giraffeStillPower;
 			}
 		}
 	}
@@ -152,16 +179,16 @@ task feedControl()
 {
 	while (true)
 	{
-		setFeedSpeed(0);
+		setFeedPower(0);
 		while (vexRT[feedUpBtn] == 0 && vexRT[feedDownBtn] == 0) { EndTimeSlice(); }
 		if (vexRT[feedUpBtn] == 1)
 		{
-			setFeedSpeed(127);
+			setFeedPower(127);
 			while (vexRT[feedUpBtn] == 1) { EndTimeSlice(); }
 		}
 		else //feedDownBtn is pressed
 		{
-			setFeedSpeed(-127);
+			setFeedPower(-127);
 			while (vexRT[feedDownBtn] == 1) { EndTimeSlice(); }
 		}
 	}
@@ -174,14 +201,14 @@ task cataChooChoo()
 		switch (chooState)
 		{
 		case BLOCKING:
-			setChooSpeed(0);
+			setChooPower(0);
 
 			while (vexRT[progressCataChooChooBtn] == 0 && vexRT[manualOverrideBtn] == 0) { EndTimeSlice(); }
 
 			if (vexRT[progressCataChooChooBtn] == 1)
 			{
 				//cocks catapult
-				setChooSpeed(127);
+				setChooPower(127);
 				while (SensorValue[chooSwitch] == 1) { EndTimeSlice(); }
 
 				chooState = STILL;
@@ -192,14 +219,14 @@ task cataChooChoo()
 			}
 
 		case STILL:
-			setChooSpeed(stillSpeed);
+			setChooPower(stillSpeed);
 
 			while (vexRT[progressCataChooChooBtn] == 0 && vexRT[manualOverrideBtn] == 0) { EndTimeSlice(); }
 
 			if (vexRT[progressCataChooChooBtn] == 1)
 			{
 				//fires
-				setChooSpeed(127);
+				setChooPower(127);
 				wait1Msec(fireDuration);
 				chooState = BLOCKING;
 			}
@@ -210,7 +237,7 @@ task cataChooChoo()
 			break;
 
 		default: //chooState is MANUAL_OVERRIDE
-			setChooSpeed(127);
+			setChooPower(127);
 			while (vexRT[manualOverrideBtn] == 1) { EndTimeSlice(); }
 			chooState = STILL;
 		}
@@ -221,16 +248,20 @@ task cataChooChoo()
 //autobehavior region
 task cockCatapult()
 {
-	setChooSpeed((SensorValue[chooSwitch] == 1) ? (127) : (0));
+	setChooPower((SensorValue[chooSwitch] == 1) ? (127) : (0));
+	cockCatapultRunning = true;
 	while (SensorValue[chooSwitch] == 1) { EndTimeSlice(); }
-	setChooSpeed(stillSpeed);
+	setChooPower(stillSpeed);
+	cockCatapultRunning = false;
 }
 
 task feedToTop()
 {
-	setFeedSpeed((SensorValue[feedSwitch] == 1) ? (127) : (0));
+	setFeedPower((SensorValue[feedSwitch] == 1) ? (127) : (0));
+	feedToTopRunning = true;
 	while (SensorValue[feedSwitch] == 1) { EndTimeSlice() ;}
-	setFeedSpeed(0);
+	setFeedPower(0);
+	feedToTopRunning = false;
 }
 
 task giraffeToTarget() //TODO: implement error correction using this function
@@ -249,20 +280,17 @@ task load()
 
 	startTask(cockCatapult);
 	startTask(feedToTop);
-	while ((SensorValue[chooSwitch] == 1 || SensorValue[feedSwitch] == 1)) { EndTimeSlice(); }
+	while (cockCatapultRunning || feedToTopRunning) { EndTimeSlice(); }
 
-	stopTask(cockCatapult);
-	setChooSpeed(stillSpeed);
-	stopTask(feedToTop);
-	setFeedSpeed(127);
+	setFeedPower(127);
 
 	while (SensorValue[chooResistor] > resistorCutoff) { EndTimeSlice(); }
 
 	if (SensorValue[feedSwitch] == 0)
 	{
-		setFeedSpeed(-127);
+		setFeedPower(-127);
 		wait1Msec(feedBackwardTime);
-		setFeedSpeed(0);
+		setFeedPower(0);
 	}
 
 	if (startTasksAfterCompletion)
@@ -287,9 +315,9 @@ task fire()
 
 		while (loadRunning) { EndTimeSlice(); }
 
-		setChooSpeed(127);
+		setChooPower(127);
 		wait1Msec(fireDuration);
-		setChooSpeed(0);
+		setChooPower(0);  //TODO: eliminate momentary stop?
 	} while(continuousFire && vexRT[continuousFireBtn] == 0);
 
 	startTask(cataChooChoo);
@@ -335,7 +363,6 @@ void emergencyStop()
 	stopTask(feedToTop);
 	stopTask(giraffeToTarget);
 	stopTask(fire);
-
 	stopTask(autoBehaviors);
 
 	startTask(usercontrol);
@@ -349,31 +376,39 @@ void pre_auton()
 
 task autonomous()
 {
-	motor[giraffe] = giraffeStillSpeed;
+	motor[giraffe] = giraffeStillPower;
 
   //cocks and fires initial preload
-	setChooSpeed(127);
+	setChooPower(127);
 	while (SensorValue[chooSwitch] == 1) {}
 	fireFromCocking();
 
 	//feeds and fires three remaining balls
 	for (int i = 0; i < 4; i++)
 	{
-		setFeedSpeed(127);
+		setFeedPower(127);
+
 		clearTimer(T1);
-		while (SensorValue[feedSwitch] == 1 && time1[T1] < 3000) {}
-		while (SensorValue[feedSwitch] == 0 && time1[T1] < 1000) {}
-		wait1Msec(750);
-		setFeedSpeed(-127);
-		wait1Msec(250);
-		setFeedSpeed(0);
+		while (SensorValue[chooResistor] == 1 && time1[T1] < 3000) {}
+		
+		if (SensorValue[feedSwitch] == 0)
+		{
+			setFeedPower(-127);
+			wait1Msec(250);
+			setFeedPower(0);
+		}
+
 		fireFromCocking();
 	}
 }
 
 task usercontrol()
 {
-	DCLfire();
+	if (firstStart)
+	{
+		DCLfire();
+	}
+	firstStart = false;
 
 	startTask(cataChooChoo);
 	startTask(feedControl);
@@ -384,7 +419,7 @@ task usercontrol()
 	{
 		while (vexRT[emergencyStopBtn] == 0)
 		{
-			setDriveSpeed(vexRT[Ch2], vexRT[Ch3]);
+			setDrivePower(vexRT[Ch2], vexRT[Ch3]);
 			EndTimeSlice();
 		}
 
