@@ -135,7 +135,6 @@ task driveStraight()
 	const int coeff = 5;
   int totalClicks = 0;
   int slavePower = drivePower - 5;
-  int error = 0;
 
   SensorValue[leftEncoder] = 0;
   SensorValue[rightEncoder] = 0;
@@ -144,9 +143,7 @@ task driveStraight()
   {
     setDrivePower(drivePower, slavePower);
 
-    error = SensorValue[leftEncoder] - SensorValue[rightEncoder];
-
-    slavePower += error / coeff;
+    slavePower += (SensorValue[leftEncoder] - SensorValue[rightEncoder]) / coeff;
 
     totalClicks += SensorValue[leftEncoder];
     SensorValue[leftEncoder] = 0;
@@ -162,13 +159,12 @@ task driveStraight()
 //user control region
 task giraffeControl()
 {
-	int giraffePower = giraffeStillSpeed;
 	int giraffeTarget = startingSquare;
+	motor[giraffe] = giraffeStillSpeed;
+	SensorValue[giraffeEncoder] = 0;
 
 	while (true)
 	{
-		motor[giraffe] = giraffePower;
-
 		while (SensorValue[giraffeEncoder] > (giraffeTarget - giraffeError) && SensorValue[giraffeEncoder] < (giraffeTarget + giraffeError) && vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0 && vexRT[netBtn] == 0 && vexRT[fullCourtBtn] == 0) { EndTimeSlice(); }
 
 		if (vexRT[giraffeUpBtn] == 1)
@@ -190,18 +186,9 @@ task giraffeControl()
 		}
 		else
 		{
-			if (SensorValue[giraffeEncoder] > giraffeTarget)
-			{
-				motor[giraffe] = -127;
-				while (SensorValue[giraffeEncoder] > giraffeTarget && vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0 && vexRT[netBtn] == 0 && vexRT[fullCourtBtn] == 0) { EndTimeSlice(); }
-				motor[giraffe] = giraffeStillSpeed;
-			}
-			else
-			{
-				motor[giraffe] = 127;
-				while (SensorValue[giraffeEncoder] < giraffeTarget && vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0 && vexRT[netBtn] == 0 && vexRT[fullCourtBtn] == 0) { EndTimeSlice(); }
-				motor[giraffe] = giraffeStillSpeed;
-			}
+			setMotorTarget(giraffe, giraffeTarget, (giraffeTarget > SensorValue[giraffeEncoder]) ? (127) : (-127));
+			while (!getMotorTargetCompleted() && vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0) {}
+			motor[giraffe] = giraffeStillSpeed;
 		}
 	}
 }
@@ -347,9 +334,10 @@ task fire()
 		while (loadRunning) { EndTimeSlice(); }
 
 		setChooPower(127);
-		wait1Msec(fireDuration);
-		setChooPower(0);  //TODO: eliminate momentary stop?
 	} while(continuousFire && vexRT[continuousFireBtn] == 0);
+
+	wait1Msec(fireDuration);
+	setChooPower(0);
 
 	startTask(cataChooChoo);
 	startTask(feedControl);
