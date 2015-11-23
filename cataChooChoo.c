@@ -187,7 +187,7 @@ task giraffeControl()
 		else
 		{
 			setMotorTarget(giraffe, giraffeTarget, (giraffeTarget > SensorValue[giraffeEncoder]) ? (127) : (-127));
-			while (!getMotorTargetCompleted() && vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0) {}
+			while (!getMotorTargetCompleted() && vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0) { EndTimeSlice(); }
 			motor[giraffe] = giraffeStillSpeed;
 		}
 	}
