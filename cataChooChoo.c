@@ -325,6 +325,19 @@ task fire()
 	continuousFire = false;
 }
 
+task DCLfire() //sets both catapults to continuous fire mode
+{
+	stopTask(cataChooChoo);
+
+	setChooPower(127);
+	setCataPower(127);
+	while (vexRT[stopDCLfireBtn] == 0) { EndTimeSlice(); }
+	setChooPower(0);
+	setCataPower(0);
+
+	startTask(cataChooChoo);
+}
+
 task autoBehaviors()
 {
 	while (true)
@@ -353,21 +366,6 @@ task autoBehaviors()
 	}
 }
 //end autobehavior region
-
-task DCLfire() //sets both catapults to continuous fire mode
-{
-	stopTask(cataChooChoo);
-	stopTask(autobehaviors);
-
-	setChooPower(127);
-	setCataPower(127);
-	while (vexRT[stopDCLfireBtn] == 0) { EndTimeSlice(); }
-	setChooPower(0);
-	setCataPower(0);
-
-	startTask(cataChooChoo);
-	startTask(autobehaviors);
-}
 
 void emergencyStop()
 {
