@@ -87,7 +87,6 @@ void setChooPower(int power)
 {
 	motor[choo1] = power;
 	motor[choo2] = power;
-	motor[cata] = power;
 }
 
 void setCataPower (int power)
@@ -427,7 +426,7 @@ task usercontrol()
 
 	if (firstStart)
 	{
-		//startTask(DCLfire);
+		startTask(DCLfire);
 	}
 	firstStart = false;
 
