@@ -7,21 +7,21 @@ task main()
 {
 	while (vexRT[btn6U] == 0)
 	{
-		if (vexRT[btn7U) == 1)
+		if (vexRT[btn7U] == 1)
 		{
 			motor[giraffe] = 80;
 		}
-		else if (vexRT[btn7D == 1)
+		else if (vexRT[btn6D] == 1)
 		{
 			motor[giraffe] = -60;
 		}
 		else
 		{
-			if (vexRT[btn8U) == 1)
+			if (vexRT[btn5U] == 1)
 			{
 				motor[giraffe] = 127;
 			}
-			else if (vexRT[btn7D == 1)
+			else if (vexRT[btn5D] == 1)
 			{
 				motor[giraffe] = -127;
 			}
