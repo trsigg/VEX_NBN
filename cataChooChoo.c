@@ -72,6 +72,7 @@ const int giraffeDownwardPower = -100;
 const int giraffeStillSpeed = 15;
 const int resistorCutoff = 75;
 const int feedBackwardTime = 250;
+const int debounceDuration = 750;
 
 //set functions region
 void setFeedPower(int power)
@@ -128,13 +129,6 @@ task driveStraight() //TODO: allow for turning
   }
   setDrivePower(0, 0);
   driveStraightRunning = false;
-}
-
-task debounce ()
-{
-	debounced = false;
-	while (debounceBtn == 1) { EndTimeSlice(); }
-	debounced = true;
 }
 //end robot tasks region
 
@@ -323,11 +317,10 @@ task autoBehaviors()
 			startTasksAfterCompletion = true;
 			startTask(load);
 		}
-		else if (debounced) //toggleSecondCatapultBtn is pushed
+		else if (timer1(T1) > debounceDuration) //toggleSecondCatapultBtn is pushed
 		{
 			secondCatapult = 1 - secondCatapult;
-			debounceBtn = toggleSecondCatapultBtn;
-			startTask(debounce);
+			clearTimer(T1);
 		}
 	}
 }
