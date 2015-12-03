@@ -15,18 +15,17 @@ task main()
 			motor[giraffe] = -60;
 		}
 		else if (vexRT[btn5U] == 1)
-			{
-				motor[giraffe] = 127;
-			}
+		{
+			motor[giraffe] = 127;
+		}
 		else if (vexRT[btn5D] == 1)
-			{
-				motor[giraffe] = -127;
-			}
+		{
+			motor[giraffe] = -127;
+		}
 		else
-			{
-				motor[giraffe] = 15;
-			}
-
+		{
+			motor[giraffe] = 15;
+		}
 	}
 
 	SensorValue[giraffeEncoder] = 0;

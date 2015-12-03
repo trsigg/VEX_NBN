@@ -66,7 +66,7 @@ const int fireDuration = 750; //amount of time motors run during firing
 const int stillSpeed = 15;
 const int giraffeUpwardPower = 127;
 const int giraffeDownwardPower = -100;
-const int giraffeStillSpeed = 35;
+const int giraffeStillSpeed = 20;
 const int resistorCutoff = 700;
 const int feedBackwardTime = 250;
 const int debounceDuration = 750;
@@ -134,7 +134,7 @@ task giraffeControl()
 {
 	while (true)
 	{
-		motor[giraffe] = 15;
+		motor[giraffe] = giraffeStillSpeed;
 		while (vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0) { EndTimeSlice(); }
 
 		if (vexRT[giraffeUpBtn] == 1)
