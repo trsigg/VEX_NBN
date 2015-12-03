@@ -66,8 +66,8 @@ const int fireDuration = 750; //amount of time motors run during firing
 const int stillSpeed = 15;
 const int giraffeUpwardPower = 127;
 const int giraffeDownwardPower = -100;
-const int giraffeStillSpeed = 15;
-const int resistorCutoff = 75;
+const int giraffeStillSpeed = 35;
+const int resistorCutoff = 700;
 const int feedBackwardTime = 250;
 const int debounceDuration = 750;
 
@@ -252,14 +252,14 @@ task load()
 
 	setFeedPower(127);
 
-	while (SensorValue[chooResistor] > resistorCutoff) { EndTimeSlice(); }
+	while (SensorValue[chooResistor] < resistorCutoff) { EndTimeSlice(); }
 
 	if (SensorValue[feedSwitch] == 0)
 	{
 		setFeedPower(-127);
 		wait1Msec(feedBackwardTime);
-		setFeedPower(0);
 	}
+	setFeedPower(0);
 
 	if (startTasksAfterCompletion)
 	{
@@ -270,6 +270,7 @@ task load()
 	{
 		startTasksAfterCompletion = true;
 	}
+	setChooPower(stillSpeed);
 
 	loadRunning = false;
 }
@@ -284,9 +285,9 @@ task fire()
 		while (loadRunning) { EndTimeSlice(); }
 
 		setChooPower(127);
+		wait1Msec(fireDuration);
 	} while(continuousFire && vexRT[continuousFireBtn] == 0);
 
-	wait1Msec(fireDuration);
 	setChooPower(0);
 
 	startTask(cataChooChoo);
