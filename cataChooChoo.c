@@ -44,6 +44,7 @@ int leftSign = 1;
 bool feedToTopRunning = false; //feedToTop
 bool cockCatapultRunning = false; //cockCatapult
 bool continuousFire = false; //fire
+bool continuousFeedRunning = false; //continuous feed
 
 //group 5
 const TButtonMasks progressCataChooChooBtn = Btn5U;
@@ -55,6 +56,7 @@ const TButtonMasks feedDownBtn = Btn6D;
 const TButtonMasks giraffeUpBtn = Btn7U;
 const TButtonMasks giraffeDownBtn = Btn7D;
 const TButtonMasks toggleSecondCatapultBtn = Btn7L;
+const TButtonMasks continuousFeedBtn = Btn7R;
 //const TButtonMasks continuousFeedBtn = Btn7R;
 //group 8
 const TButtonMasks continuousFireBtn = Btn8D;
@@ -66,7 +68,7 @@ const int fireDuration = 750; //amount of time motors run during firing
 const int stillSpeed = 15;
 const int giraffeUpwardPower = 127;
 const int giraffeDownwardPower = -100;
-const int giraffeStillSpeed = 20;
+const int giraffeStillSpeed = 35;
 const int resistorCutoff = 700;
 const int feedBackwardTime = 250;
 const int debounceDuration = 750;
@@ -295,11 +297,25 @@ task fire()
 	continuousFire = false;
 }
 
+task continuousFeed()
+{
+    stopTask(feedControl);
+    continuousFeedRunning = true;
+    setFeedPower(127);
+    while(vexRT[continuousFeedBtn] == 1) { EndTimeSlice(); } //waits for button to be released
+    while(vexRT[continuousFeedBtn] == 0) { EndTimeSlice(); }
+    setFeedPower(0);
+    startTask(feedControl);
+
+    while(vexRT[continuousFeedBtn] == 1) { EndTimeSlice(); }
+    continuousFeedRunning = false;
+}
+
 task autoBehaviors()
 {
 	while (true)
 	{
-		while (vexRT[continuousFireBtn] == 0 && vexRT[fireOnceBtn] == 0 && vexRT[loadBtn] == 0 && vexRT[toggleSecondCatapultBtn] == 0) { EndTimeSlice(); }
+		while (vexRT[continuousFireBtn] == 0 && vexRT[fireOnceBtn] == 0 && vexRT[loadBtn] == 0 && vexRT[continuousFeedBtn] == 0 && vexRT[toggleSecondCatapultBtn] == 0) { EndTimeSlice(); }
 
 		if (vexRT[continuousFireBtn] == 1)
 		{
@@ -316,9 +332,14 @@ task autoBehaviors()
 			startTasksAfterCompletion = true;
 			startTask(load);
 		}
+		else if (vexRT[continuousFeedBtn] == 1 && !continuousFeedRunning)
+		{
+			startTask(continuousFeed);
+		}
 		else if (time1(T1) > debounceDuration) //toggleSecondCatapultBtn is pushed
 		{
 			secondCatapult = 1 - secondCatapult;
+			motor[cata] = 0;
 			clearTimer(T1);
 		}
 	}
