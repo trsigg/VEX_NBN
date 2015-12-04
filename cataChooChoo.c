@@ -53,22 +53,22 @@ const TButtonMasks manualOverrideBtn = Btn5D;
 const TButtonMasks feedUpBtn = Btn6U;
 const TButtonMasks feedDownBtn = Btn6D;
 //group 7
-const TButtonMasks giraffeUpBtn = Btn7U;
-const TButtonMasks giraffeDownBtn = Btn7D;
-const TButtonMasks continuousCatapultBtn = Btn7L;
-const TButtonMasks continuousFeedBtn = Btn7R;
+const TButtonMasks fireOnceBtn = Btn7U;
+const TButtonMasks continuousFireBtn = Btn7D;
+const TButtonMasks emergencyStopBtn = Btn7L;
+const TButtonMasks loadBtn = Btn7R;
 //const TButtonMasks continuousFeedBtn = Btn7R;
 //group 8
-const TButtonMasks continuousFireBtn = Btn8D;
-const TButtonMasks fireOnceBtn = Btn8U;
-const TButtonMasks emergencyStopBtn = Btn8L;
-const TButtonMasks loadBtn = Btn8R;
+const TButtonMasks giraffeUpBtn = Btn8U;
+const TButtonMasks giraffeDownBtn = Btn8D;
+const TButtonMasks continuousCatapultBtn = Btn8L;
+const TButtonMasks continuousFeedBtn = Btn8R;
 
 const int fireDuration = 750; //amount of time motors run during firing
 const int stillSpeed = 15;
 const int giraffeUpwardPower = 127;
 const int giraffeDownwardPower = -100;
-const int giraffeStillSpeed = 35;
+const int giraffeStillSpeed = 20;
 const int resistorCutoff = 700;
 const int feedBackwardTime = 250;
 
