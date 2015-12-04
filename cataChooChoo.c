@@ -30,7 +30,6 @@
 //cataChooChoo
 enum catapultState { BLOCKING, STILL, MANUAL_OVERRIDE };
 catapultState chooState = BLOCKING;
-int secondCatapult = 1;
 //load
 bool startTasksAfterCompletion = true;
 bool loadRunning = false;
@@ -45,6 +44,7 @@ bool feedToTopRunning = false; //feedToTop
 bool cockCatapultRunning = false; //cockCatapult
 bool continuousFire = false; //fire
 bool continuousFeedRunning = false; //continuous feed
+bool continuousCatapultRunning = false; //continuous catapult
 
 //group 5
 const TButtonMasks progressCataChooChooBtn = Btn5U;
@@ -55,14 +55,14 @@ const TButtonMasks feedDownBtn = Btn6D;
 //group 7
 const TButtonMasks giraffeUpBtn = Btn7U;
 const TButtonMasks giraffeDownBtn = Btn7D;
-const TButtonMasks toggleSecondCatapultBtn = Btn7L;
+const TButtonMasks continuousCatapultBtn = Btn7L;
 const TButtonMasks continuousFeedBtn = Btn7R;
 //const TButtonMasks continuousFeedBtn = Btn7R;
 //group 8
 const TButtonMasks continuousFireBtn = Btn8D;
 const TButtonMasks fireOnceBtn = Btn8U;
-const TButtonMasks loadBtn = Btn8L;
-const TButtonMasks emergencyStopBtn = Btn8R;
+const TButtonMasks emergencyStopBtn = Btn8L;
+const TButtonMasks loadBtn = Btn8R;
 
 const int fireDuration = 750; //amount of time motors run during firing
 const int stillSpeed = 15;
@@ -71,7 +71,6 @@ const int giraffeDownwardPower = -100;
 const int giraffeStillSpeed = 35;
 const int resistorCutoff = 700;
 const int feedBackwardTime = 250;
-const int debounceDuration = 750;
 
 //set functions region
 void setFeedPower(int power)
@@ -84,7 +83,6 @@ void setChooPower(int power)
 {
 	motor[choo1] = power;
 	motor[choo2] = power;
-	motor[cata] = secondCatapult * power;
 }
 
 void setDrivePower(int right, int left)
@@ -96,6 +94,7 @@ void setDrivePower(int right, int left)
 }
 //end set functions region
 
+//robot tasks region
 void fireFromCocking()
 {
 	setChooPower(127);
@@ -311,11 +310,25 @@ task continuousFeed()
     continuousFeedRunning = false;
 }
 
+task continuousCatapult()
+{
+    stopTask(cataChooChoo);
+    continuousCatapultRunning = true;
+    setChooPower(127);
+    while(vexRT[continuousCatapultBtn] == 1) { EndTimeSlice(); } //waits for button to be released
+    while(vexRT[continuousCatapultBtn] == 0) { EndTimeSlice(); }
+    setChooPower(0);
+    startTask(cataChooChoo);
+
+    while(vexRT[continuousCatapultBtn] == 1) { EndTimeSlice(); }
+    continuousCatapultRunning = false;
+}
+
 task autoBehaviors()
 {
 	while (true)
 	{
-		while (vexRT[continuousFireBtn] == 0 && vexRT[fireOnceBtn] == 0 && vexRT[loadBtn] == 0 && vexRT[continuousFeedBtn] == 0 && vexRT[toggleSecondCatapultBtn] == 0) { EndTimeSlice(); }
+		while (vexRT[continuousFireBtn] == 0 && vexRT[fireOnceBtn] == 0 && vexRT[loadBtn] == 0 && vexRT[continuousFeedBtn] == 0 && vexRT[continuousCatapultBtn] == 0) { EndTimeSlice(); }
 
 		if (vexRT[continuousFireBtn] == 1)
 		{
@@ -336,11 +349,9 @@ task autoBehaviors()
 		{
 			startTask(continuousFeed);
 		}
-		else if (time1(T1) > debounceDuration) //toggleSecondCatapultBtn is pushed
+		else if (vexRT[continuousCatapultBtn] == 1 && !continuousCatapultRunning)
 		{
-			secondCatapult = 1 - secondCatapult;
-			motor[cata] = 0;
-			clearTimer(T1);
+			startTask(continuousCatapult);
 		}
 	}
 }
