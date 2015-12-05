@@ -66,6 +66,7 @@ const int giraffeDownwardPower = -100;
 const int giraffeStillSpeed = 20;
 const int resistorCutoff = 700;
 const int feedBackwardTime = 250;
+const int coeff = 5; //coefficient for driveStraight adjustments
 
 //set functions region
 void setFeedPower(int power)
@@ -92,7 +93,6 @@ void setDrivePower(int right, int left)
 //robot tasks region
 void driveStraight(int clicks, int drivePower, int rightSign, int leftSign) //TODO: allow for turning
 {
-	const int coeff = 5;
   int totalClicks = 0;
   int slavePower = drivePower - 5; //left is master, right is slave
 
@@ -103,7 +103,7 @@ void driveStraight(int clicks, int drivePower, int rightSign, int leftSign) //TO
   {
     setDrivePower(leftSign * drivePower, rightSign * slavePower);
 
-    slavePower += (SensorValue[leftEncoder] - SensorValue[rightEncoder]) / coeff;
+    slavePower += (abs(SensorValue[leftEncoder]) - abs(SensorValue[rightEncoder])) / coeff;
 
     totalClicks += SensorValue[leftEncoder];
     SensorValue[leftEncoder] = 0;
@@ -377,12 +377,14 @@ task autonomous()
 	  continuousFire = true;
 		startTask(fire);
 
-	  for (int shots = 0; shots < 3; shots++)
+		while (true) { EndTimeSlice(); }
+
+	  /* for (int shots = 0; shots < 3; shots++)
 	  {
 	  	while (SensorValue[chooSwitch] == 1) { EndTimeSlice(); }
 	  	while (SensorValue[chooSwitch] == 0) { EndTimeSlice(); }
 	  }
-	  continuousFire = false;
+	  continuousFire = false; */
 	}
 	else
 	{
