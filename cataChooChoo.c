@@ -42,6 +42,7 @@ bool feedToTopRunning = false; //feedToTop
 bool cockCatapultRunning = false; //cockCatapult
 bool continuousFeedRunning = false; //continuous feed
 bool continuousCatapultRunning = false; //continuous catapult
+int ballsToLoadAndFire;
 
 //group 5
 const TButtonMasks progressCataChooChooBtn = Btn5U;
@@ -365,6 +366,7 @@ void pre_auton()
 
 task autonomous()
 {
+	ballsToLoadAndFire = ((SensorValue[two] > 2048) ? (2) : (0)) + ((SensorValue[one] < 2048) ? (1) : (0));
 	motor[giraffe] = giraffeStillSpeed;
 
 	//fires initial preload
@@ -374,13 +376,13 @@ task autonomous()
 	wait1Msec(fireDuration);
 
 	//loads and fires other preloads
-	if (SensorValue[two] > 2048 || SensorValue[one] < 2048)
+	if (ballsToLoadAndFire > 0)
 	{
 		shotsFired = 1;
   	continuousFire = true;
 		startTask(fire);
 
-		while (shotsFired < ((SensorValue[two] > 2048) ? (2) : (0)) + ((SensorValue[one] < 2048) ? (1) : (0))) { EndTimeSlice(); }
+		while (shotsFired < ballsToLoadAndFire) { EndTimeSlice(); }
 
   	continuousFire = false;
   }
