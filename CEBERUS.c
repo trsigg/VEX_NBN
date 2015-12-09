@@ -13,7 +13,6 @@ LD should be fire once when flywheel is firing
 
 #include "Vex_Competition_Includes.c"   //Main competition background code...do not modify!
 
-int launcherDirection = -1; //setLauncherPower -> -1 if catapults are firing, 1 if flywheel is
 TButtonMasks btnToMonitor; //taskControl
 int flywheelTargetSpeed; //flywheel and fire
 
@@ -37,7 +36,7 @@ const TButtonMasks stopFireBtn = Btn6D; //TO SET
 
 int limit(int input, int max, int min)
 {
-	if (abs(input) =< max && abs(input) >= min)
+	if (abs(input) <= max && abs(input) >= min)
 	{
 		return input;
 	}
@@ -56,10 +55,10 @@ void setFeedPower(int power)
 
 void setLauncherPower(int power)
 {
-	motor[ce] = limit(launcherDirection * power, 0, 127);
-	motor[be] = limit(launcherDirection * power, 0, 127);
-	motor[ru] = limit(launcherDirection * power, 0, 127);
-	motor[s] = limit(launcherDirection * power, 0, 127);
+	motor[ce] = limit(power, 0, 127);
+	motor[be] = limit(power, 0, 127);
+	motor[ru] = limit(power, 0, 127);
+	motor[s] = limit(power, 0, 127);
 }
 
 void setDrivePower(int right, int left)
@@ -76,9 +75,9 @@ task cataChooChoo()
 	while (true)
 	{
 		while (vexRT[chooBtn] == 0) { EndTimeSlice(); }
-		setLauncherSpeed(127);
+		setLauncherPower(127);
 		while (vexRT[chooBtn] == 1) { EndTimeSlice(); }
-		setLauncherSpeed(0);
+		setLauncherPower(0);
 	}
 }
 
@@ -88,7 +87,8 @@ task fire()
 	{
 		while (abs(flywheelTargetSpeed - /*velocity of flywheel motor*/ * gearRatio) < firingErrorMargin * flywheelTargetSpeed) { EndTimeSlice(); } //waits for flywheel to be within an acceptable range of the target speed --- TODO: find velocity function
 
-		setFeedSpeed
+		setFeedSpeed(127);
+
 	} while (continuousFire);
 }
 
@@ -116,7 +116,10 @@ task taskControl()
 		else //switchLauncherModesBtn is pressed
 		{
 			setLauncherPower(0);
-			launcherDirection = -launcherDirection;
+			bMotorReflected[ce] = !bMotorReflected[ce];
+			bMotorReflected[be] = !bMotorReflected[be];
+			bMotorReflected[ru] = !bMotorReflected[ru];
+			bMotorReflected[s] = !bMotorReflected[s];
 		}
 
 		wait1Msec(debounceTime);
@@ -137,7 +140,7 @@ void emergencyStop()
 
 task autonomous()
 {
-	
+
 }
 
 task usercontrol()
