@@ -62,7 +62,7 @@ const TButtonMasks giraffeDownBtn = Btn8D;
 const TButtonMasks continuousCatapultBtn = Btn8L;
 const TButtonMasks continuousFeedBtn = Btn8R;
 
-const int fireDuration = 750; //amount of time motors run during firing
+const int fireDuration = 300; //amount of time motors run during firing
 const int stillSpeed = 15;
 const int giraffeUpwardPower = 127;
 const int giraffeDownwardPower = -100;
@@ -236,9 +236,9 @@ task load()
 	stopTask(cataChooChoo);
 	stopTask(feedControl);
 
+	setFeedPower(127);
 	startTask(cockCatapult);
-	startTask(feedToTop);
-	while (cockCatapultRunning || feedToTopRunning) { EndTimeSlice(); }
+	while (cockCatapultRunning) { EndTimeSlice(); }
 
 	setFeedPower(127);
 
