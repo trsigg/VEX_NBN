@@ -12,8 +12,8 @@
 #pragma config(Motor,  port3,           left1,         tmotorVex393_MC29, openLoop, encoderPort, I2C_1)
 #pragma config(Motor,  port4,           left2,         tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port5,           choo1,         tmotorVex393_MC29, openLoop)
-#pragma config(Motor,  port6,           cata,          tmotorVex393_MC29, openLoop)
-#pragma config(Motor,  port7,           right1,        tmotorVex393_MC29, openLoop, encoderPort, I2C_2)
+#pragma config(Motor,  port6,           choo3,         tmotorVex393_MC29, openLoop)
+#pragma config(Motor,  port7,           right1,        tmotorVex393_MC29, openLoop, reversed, encoderPort, I2C_2)
 #pragma config(Motor,  port8,           right2,        tmotorVex393_MC29, openLoop, reversed)
 #pragma config(Motor,  port9,           choo2,         tmotorVex393_MC29, openLoop, reversed)
 #pragma config(Motor,  port10,          giraffe,       tmotorVex393_HBridge, openLoop, encoderPort, I2C_3)
@@ -82,6 +82,7 @@ void setChooPower(int power)
 {
 	motor[choo1] = power;
 	motor[choo2] = power;
+	motor[choo3] = power;
 }
 
 void setDrivePower(int right, int left)
