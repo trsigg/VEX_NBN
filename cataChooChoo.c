@@ -45,22 +45,22 @@ bool continuousCatapultRunning = false; //continuous catapult
 int ballsToLoadAndFire;
 
 //group 5
-#define progressCataChooChooBtn Btn5U;
-#define manualOverrideBtn Btn5D;
+#define progressCataChooChooBtn Btn5U
+#define manualOverrideBtn Btn5D
 //group 6
-#define feedUpBtn Btn6U;
-#define feedDownBtn Btn6D;
+#define feedUpBtn Btn6U
+#define feedDownBtn Btn6D
 //group 7
-#define fireOnceBtn Btn7U;
-#define continuousFireBtn Btn7D;
-#define emergencyStopBtn Btn7L;
-#define loadBtn Btn7R;
+#define fireOnceBtn Btn7U
+#define continuousFireBtn Btn7D
+#define emergencyStopBtn Btn7L
+#define loadBtn Btn7R
 //#define continuousFeedBtn Btn7R;
 //group 8
-#define giraffeUpBtn Btn8U;
-#define giraffeDownBtn Btn8D;
-#define continuousCatapultBtn Btn8L;
-#define continuousFeedBtn Btn8R;
+#define giraffeUpBtn Btn8U
+#define giraffeDownBtn Btn8D
+#define continuousCatapultBtn Btn8L
+#define continuousFeedBtn Btn8R
 
 const int fireDuration = 300; //amount of time motors run during firing
 const int stillSpeed = 15;
