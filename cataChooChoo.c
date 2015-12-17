@@ -148,7 +148,7 @@ void driveStraight(int clicks, int drivePower, int rightSign, int leftSign) //TO
 
 task giraffeControl()
 {
-	int oldPosition
+	int oldPosition;
 
 	while (true)
 	{
@@ -158,13 +158,13 @@ task giraffeControl()
 
 		if (vexRT[giraffeUpBtn] == 1)
 		{
-			motor[giraffe] = giraffeUpwardSpeed;
+			motor[giraffe] = giraffeUpwardPower;
 			while (vexRT[giraffeUpBtn] == 1) { EndTimeSlice(); }
  			giraffeTarget = SensorValue[giraffeEncoder];
 		}
 		else if (vexRT[giraffeDownBtn] == 1)
  		{
- 			motor[giraffe] = giraffeDownwardSpeed;
+ 			motor[giraffe] = giraffeDownwardPower;
  			while (vexRT[giraffeDownBtn] == 1) { EndTimeSlice(); }
  			giraffeTarget = SensorValue[giraffeEncoder];
  		}
@@ -176,7 +176,7 @@ task giraffeControl()
  			{
  				oldPosition = SensorValue[giraffeEncoder];
  				wait1Msec(giraffeSampleTime);
- 			} while (SensorValue[giraffeEncoder] - oldPosition < minGiraffeVelocity && vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0);
+ 			} while (SensorValue[giraffeEncoder] - oldPosition < giraffeMinVelocity && vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0);
 
  			motor[giraffe] = giraffeStillSpeed;
 

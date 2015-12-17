@@ -44,22 +44,21 @@ bool continuousFeedRunning = false; //continuous feed
 bool continuousCatapultRunning = false; //continuous catapult
 
 //group 5
-const TButtonMasks progressCataChooChooBtn = Btn5U;
-const TButtonMasks manualOverrideBtn = Btn5D;
+#define progressCataChooChooBtn Btn5U
+#define manualOverrideBtn Btn5D
 //group 6
-const TButtonMasks feedUpBtn = Btn6U;
-const TButtonMasks feedDownBtn = Btn6D;
+#define feedUpBtn Btn6U
+#define feedDownBtn Btn6D
 //group 7
-const TButtonMasks fireOnceBtn = Btn7U;
-const TButtonMasks continuousFireBtn = Btn7D;
-const TButtonMasks emergencyStopBtn = Btn7L;
-const TButtonMasks loadBtn = Btn7R;
-//const TButtonMasks continuousFeedBtn = Btn7R;
+#define fireOnceBtn Btn7U
+#define continuousFireBtn Btn7D
+#define emergencyStopBtn Btn7L
+#define loadBtn Btn7R
 //group 8
-const TButtonMasks giraffeUpBtn = Btn8U;
-const TButtonMasks giraffeDownBtn = Btn8D;
-const TButtonMasks continuousCatapultBtn = Btn8L;
-const TButtonMasks continuousFeedBtn = Btn8R;
+#define giraffeUpBtn Btn8U
+#define giraffeDownBtn Btn8D
+#define continuousCatapultBtn Btn8L
+#define continuousFeedBtn Btn8R
 
 const int fireDuration = 750; //amount of time motors run during firing
 const int stillSpeed = 15;
