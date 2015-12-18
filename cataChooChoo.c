@@ -308,7 +308,17 @@ task continuousCatapult()
     continuousCatapultRunning = true;
     setChooPower(127);
     while(vexRT[continuousCatapultBtn] == 1) { EndTimeSlice(); } //waits for button to be released
-    while(vexRT[continuousCatapultBtn] == 0) { EndTimeSlice(); }
+    while(vexRT[continuousCatapultBtn] == 0) {
+    	while (SensorValue[chooSwitch] == 1 && vexRT[continuousCatapultBtn] == 0) { EndTimeSlice(); }
+    	if (SensorValue[chooResistor] < resistorCutoff && vexRT[continuousCatapultBtn] == 0)
+    	{
+    		setChooPower(stillSpeed);
+    		while (SensorValue[chooResistor] < resistorCutoff && vexRT[continuousCatapultBtn] == 0) { EndTimeSlice(); }
+    		setChooPower(127);
+    	}
+
+    	while(SensorValue[chooSwitch] == 0 && ) { EndTimeSlice(); }
+    }
     setChooPower(0);
     startTask(cataChooChoo);
 
@@ -357,6 +367,8 @@ void emergencyStop()
 	stopTask(cockCatapult);
 	stopTask(feedToTop);
 	stopTask(fire);
+	stopTask(continuousCatapult);
+	stopTask(continuousFeed);
 	stopTask(autoBehaviors);
 
 	startTask(usercontrol);
