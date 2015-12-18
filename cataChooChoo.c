@@ -68,10 +68,6 @@ bool continuousCatapultRunning = false; //continuous catapult
 #define giraffeUpwardPower 80
 #define giraffeDownwardPower -60
 #define giraffeStillSpeed 20
-#define giraffeError 10
-#define giraffeMinVelocity 5 //not actually velocity, but I know what I mean
-#define giraffeSampleTime 100
-#define netPos -900
 #define resistorCutoff 700
 #define feedBackwardTime 250
 #define coeff 5 //coefficient for driveStraight adjustments
@@ -266,6 +262,8 @@ task load()
 		startTasksAfterCompletion = true;
 	}
 
+	setChooPower(stillSpeed);
+	chooState = STILL;
 	loadRunning = false;
 }
 
@@ -371,26 +369,26 @@ void pre_auton()
 
 task autonomous()
 {
-	ballsToLoadAndFire = ((SensorValue[two] > 2048) ? (2) : (0)) + ((SensorValue[one] < 2048) ? (1) : (0));
 	motor[giraffe] = giraffeStillSpeed;
+	ballsToLoadAndFire = 1;
 
-	//fires initial preload
-	setChooPower(127);
-	while (SensorValue[chooSwitch] == 1) {}
-	while (SensorValue[chooSwitch] == 0) {}
-	wait1Msec(fireDuration);
+	if (SensorValue[chooResistor] > resistorCutoff) //fires initial preload if loaded
+	{
+		setChooPower(127);
+		while (SensorValue[chooSwitch] == 1) {}
+		while (SensorValue[chooSwitch] == 0) {}
+		wait1Msec(fireDuration);
+		ballsToLoadAndFire = 3;
+	}
 
 	//loads and fires other preloads
-	if (ballsToLoadAndFire > 0)
-	{
-		shotsFired = 1;
-  	continuousFire = true;
-		startTask(fire);
+	shotsFired = 1;
+  continuousFire = true;
+	startTask(fire);
 
-		while (shotsFired < ballsToLoadAndFire) { EndTimeSlice(); }
+	while (shotsFired < ballsToLoadAndFire) { EndTimeSlice(); }
 
-  	continuousFire = false;
-  }
+  continuousFire = false;
 
   setChooPower(0);
   motor[giraffe] = 0;
