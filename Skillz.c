@@ -71,6 +71,7 @@ bool continuousCatapultRunning = false; //continuous catapult
 #define resistorCutoff 700
 #define feedBackwardTime 250
 #define coeff 5 //coefficient for driveStraight adjustments
+#define driveStillSpeed 20
 
 //set functions region
 void setFeedPower(int power)
@@ -370,8 +371,22 @@ void pre_auton()
 task autonomous()
 {
 	motor[giraffe] = giraffeStillSpeed;
-	setChooPower(127);
-	while (true) {}
+	setDrivePower(driveStillSpeed, -driveStillSpeed);
+
+	while (true)
+	{
+		setChooPower(127);
+
+	  while (SensorValue[chooSwitch] == 1) {}
+
+	  while (SensorValue[chooResistor] < resistorCutoff)
+	  {
+	  		setChooPower(stillSpeed);
+	  }
+	  setChooPower(127);
+
+  	while(SensorValue[chooSwitch] == 0) {}
+  }
 }
 
 task usercontrol()
