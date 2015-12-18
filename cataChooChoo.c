@@ -382,7 +382,7 @@ task autonomous()
 	}
 
 	//loads and fires other preloads
-	shotsFired = 1;
+	shotsFired = 0;
   continuousFire = true;
 	startTask(fire);
 
