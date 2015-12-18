@@ -1,7 +1,7 @@
 #pragma config(I2C_Usage, I2C1, i2cSensors)
 #pragma config(Sensor, in1,    chooResistor,   sensorReflection)
-#pragma config(Sensor, in2,    modePoten,      sensorPotentiometer)
-#pragma config(Sensor, in3,    ballsToLaunchPoten, sensorPotentiometer)
+#pragma config(Sensor, in2,    two,            sensorPotentiometer)
+#pragma config(Sensor, in3,    one,            sensorPotentiometer)
 #pragma config(Sensor, in4,    sidePoten,      sensorPotentiometer)
 #pragma config(Sensor, in5,    giraffeSetPoten, sensorPotentiometer)
 #pragma config(Sensor, dgtl1,  chooSwitch,     sensorDigitalIn)
@@ -45,7 +45,6 @@ bool feedToTopRunning = false; //feedToTop
 bool cockCatapultRunning = false; //cockCatapult
 bool continuousFeedRunning = false; //continuous feed
 bool continuousCatapultRunning = false; //continuous catapult
-int giraffeTarget = 0;
 
 //group 5
 #define progressCataChooChooBtn Btn5U
@@ -59,23 +58,23 @@ int giraffeTarget = 0;
 #define emergencyStopBtn Btn7L
 #define loadBtn Btn7R
 //group 8
-#define fullCourtBtn Btn8U
-#define netBtn Btn8D
-#define giraffeUpBtn Btn8L
-#define giraffeDownBtn Btn8R
+#define giraffeUpBtn Btn8U
+#define giraffeDownBtn Btn8D
+#define continuousFeedBtn Btn8L
+#define continuousCatapultBtn Btn8R
 
-const int fireDuration = 300; //amount of time motors run during firing
-const int stillSpeed = 15;
-const int giraffeUpwardPower = 80;
-const int giraffeDownwardPower = -60;
-const int giraffeStillSpeed = 20;
-const int giraffeError = 10;
-const int giraffeMinVelocity = 5; //not actually velocity, but I know what I mean
-const int giraffeSampleTime = 100;
-const int netPos = -900;
-const int resistorCutoff = 700;
-const int feedBackwardTime = 250;
-const int coeff = 5; //coefficient for driveStraight adjustments
+#define fireDuration 300 //amount of time motors run during firing
+#define stillSpeed 15
+#define giraffeUpwardPower 80
+#define giraffeDownwardPower -60
+#define giraffeStillSpeed 20
+#define giraffeError 10
+#define giraffeMinVelocity 5 //not actually velocity, but I know what I mean
+#define giraffeSampleTime 100
+#define netPos -900
+#define resistorCutoff 700
+#define feedBackwardTime 250
+#define coeff 5 //coefficient for driveStraight adjustments
 
 //set functions region
 void setFeedPower(int power)
@@ -126,7 +125,7 @@ void driveStraight(int clicks, int drivePower, int rightSign, int leftSign) //TO
 //end robot tasks region
 
 //user control region
-/*task giraffeControl() old giraffe control
+task giraffeControl()
 {
 	while (true)
 	{
@@ -143,72 +142,6 @@ void driveStraight(int clicks, int drivePower, int rightSign, int leftSign) //TO
 			motor[giraffe] = giraffeDownwardPower;
 			while (vexRT[giraffeDownBtn] == 1) {}
 		}
-	}
-}*/
-
-task giraffeControl()
-{
-	int oldPosition;
-
-	while (true)
-	{
-		motor[giraffe] = giraffeStillSpeed;
-
-		while (abs(SensorValue[giraffeEncoder] - giraffeTarget) < giraffeError && vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0 && vexRT[fullCourtBtn] == 0 && (vexRT[netBtn] == 0 || giraffeTarget != netPos)) { EndTimeSlice(); }
-
-		if (vexRT[giraffeUpBtn] == 1)
-		{
-			motor[giraffe] = giraffeUpwardPower;
-			while (vexRT[giraffeUpBtn] == 1) { EndTimeSlice(); }
- 			giraffeTarget = SensorValue[giraffeEncoder];
-		}
-		else if (vexRT[giraffeDownBtn] == 1)
- 		{
- 			motor[giraffe] = giraffeDownwardPower;
- 			while (vexRT[giraffeDownBtn] == 1) { EndTimeSlice(); }
- 			giraffeTarget = SensorValue[giraffeEncoder];
- 		}
- 		else if (vexRT[fullCourtBtn] == 1)
- 		{
- 			motor[giraffe] = 127;
-
- 			do
- 			{
- 				oldPosition = SensorValue[giraffeEncoder];
- 				wait1Msec(giraffeSampleTime);
- 			} while (SensorValue[giraffeEncoder] - oldPosition < giraffeMinVelocity && vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0);
-
- 			motor[giraffe] = giraffeStillSpeed;
-
- 			if (vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0)
- 			{
- 				SensorValue[giraffeEncoder] == 0;
-				giraffeTarget = 0;
- 			}
- 		}
- 		else if(vexRT[netBtn] == 1)
- 		{
- 			giraffeTarget = netPos;
- 			setMotorTarget(giraffeTarget);
- 		}
-		else
- 		{
- 			setMotorTarget(giraffe, giraffeTarget, 127, 0);
- 			while (!getMotorTargetCompleted(giraffe) && vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0) { EndTimeSlice(); }
-
- 			/*if (SensorValue[giraffeEncoder] > giraffeTarget)
- 			{
- 				motor[giraffe] = -127;
- 				while (SensorValue[giraffeEncoder] > giraffeTarget && vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0 && vexRT[netBtn] == 0 && vexRT[fullCourtBtn] == 0) { EndTimeSlice(); }
- 				motor[giraffe] = giraffeStillSpeed;
- 			}
- 			else
- 			{
- 				motor[giraffe] = 127;
- 				while (SensorValue[giraffeEncoder] < giraffeTarget && vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0 && vexRT[netBtn] == 0 && vexRT[fullCourtBtn] == 0) { EndTimeSlice(); }
- 				motor[giraffe] = giraffeStillSpeed;
- 			}*/
- 		}
 	}
 }
 
@@ -308,9 +241,9 @@ task load()
 	stopTask(cataChooChoo);
 	stopTask(feedControl);
 
-	setFeedPower(127);
+	startTask(feedToTop);
 	startTask(cockCatapult);
-	while (cockCatapultRunning) { EndTimeSlice(); }
+	while (cockCatapultRunning || feedToTopRunning) { EndTimeSlice(); }
 
 	setFeedPower(127);
 
@@ -332,7 +265,6 @@ task load()
 	{
 		startTasksAfterCompletion = true;
 	}
-	setChooPower(stillSpeed);
 
 	loadRunning = false;
 }
@@ -466,11 +398,6 @@ task autonomous()
 
 task usercontrol()
 {
-	if (SensorValue[setGiraffePoten] > 2048)
-	{
-		setGiraffe();
-	}
-
 	startTask(cataChooChoo);
 	startTask(feedControl);
 	startTask(autoBehaviors);
