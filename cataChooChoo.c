@@ -317,7 +317,7 @@ task continuousCatapult()
     		setChooPower(127);
     	}
 
-    	while(SensorValue[chooSwitch] == 0 && ) { EndTimeSlice(); }
+    	while(SensorValue[chooSwitch] == 0 && vexRT[continuousCatapultBtn] == 0) { EndTimeSlice(); }
     }
     setChooPower(0);
     startTask(cataChooChoo);
