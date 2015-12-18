@@ -371,7 +371,7 @@ void pre_auton()
 task autonomous()
 {
 	motor[giraffe] = giraffeStillSpeed;
-	setDrivePower(driveStillSpeed, -driveStillSpeed);
+	setDrivePower(5, -5);
 
 	while (true)
 	{
