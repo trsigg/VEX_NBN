@@ -33,23 +33,25 @@ bool flywheelRunning = false; //taskControl
 float flywheelTargetSpeed; //flywheel and fire
 bool continuousFire = false; //fire
 
-const int minDrivePower = 20; //TO TEST
-const int maxDrivePower = 127;
-const int flywheelGearRatio = 100; //TO SET
-const int kp = 1; //TO TUNE
-const int ki = 1; //TO TUNE
-const int kd = 1; //TO TUNE
-const float firingErrorMargin = .05; //TO TUNE
-const float bangBangErrorMargin = .1; //TO TUNE
-const float integralMargin = .75; //TO TUNE
-const int debounceTime = 750;
+#define minDrivePower 20 //TO TEST
+#define maxDrivePower 127
+#define flywheelDefaultPower 100
+#define flywheelGearRatio 100 //TO SET
+#define sampleTime 50 //TO TUNE
+#define kp 1 //TO TUNE
+#define ki 1 //TO TUNE
+#define kd 1 //TO TUNE
+#define firingErrorMargin .05 //TO TUNE
+#define bangBangErrorMargin .1 //TO TUNE
+#define integralMargin .075 //TO TUNE
+#define debounceTime 750
 
-const TButtonMasks chooBtn = Btn6U; //TO SET
-const TButtonMasks switchLauncherModesBtn = Btn8D; //TO SET
-const TButtonMasks emergencyStopBtn = Btn7L; //TO SET
-const TButtonMasks continuousFireBtn = Btn5U; //TO SET
-const TButtonMasks fireOnceBtn = Btn5D; //TO SET
-const TButtonMasks stopFireBtn = Btn6D; //TO SET
+#define chooBtn Btn6U //TO SET
+#define switchLauncherModesBtn Btn8D //TO SET
+#define emergencyStopBtn Btn7L //TO SET
+#define continuousFireBtn Btn5U //TO SET
+#define fireOnceBtn Btn5D //TO SET
+#define stopFireBtn Btn6D //TO SET
 
 int limit(int input, int max, int min)
 {
@@ -60,6 +62,18 @@ int limit(int input, int max, int min)
 	else
 	{
 		return ((abs(input) > max) ? (max * sgn(input)) : (min * sgn(input)));
+	}
+}
+
+int maxPower()
+{
+	if (flywheelRunning)
+	{
+		//test max power ranges for different velocities
+	}
+	else
+	{
+		return 127;
 	}
 }
 
@@ -78,6 +92,11 @@ void initializeTasks()
 	}
 }
 
+void resetPID()
+{
+
+}
+
 //set functions region
 void setFeedPower(int power)
 {
@@ -85,10 +104,10 @@ void setFeedPower(int power)
 	motor[seymore] = power;
 }
 
-void setLauncherPower(int power)
+void setLauncherPower(int power) //set limits for different velocity ranges
 {
-	motor[cebe] = limit(power, 0, 127);
-	motor[rus] = limit(power, 0, 127);
+	motor[cebe] = limit(power, 0, maxPower());
+	motor[rus] = limit(power, 0, maxPower());
 }
 
 void setDrivePower(int right, int left)
@@ -99,6 +118,38 @@ void setDrivePower(int right, int left)
 	motor[left2] = left;
 }
 //end set functions region
+
+task flywheel()
+{
+	while (true)
+	{
+		int prevError = flywheelTargetSpeed - /*velocity of flywheel motor*/;
+		int error;
+		int integral = 0;
+		
+		while ((abs((flywheelTargetSpeed - /*velocity of flywheel motor*/) * gearRatio) < bangBangErrorMargin * flywheelTargetSpeed) //PID control
+		{
+			wait1Msec(sampleTime);
+			error = (flywheelTargetSpeed - /*velocity of flywheel motor*/) * gearRatio;
+
+			if ((abs(error) < integralMargin * flywheelTargetSpeed)
+			{
+				integral += error;
+			}
+
+			setLauncherPower(flywheelDefaultPower + kp * error + ki * integral + kd * (error - prevError) / sampleTime);
+			prevError = error;
+		}
+
+		//bang bang control
+		resetPID();
+		setLauncherPower((/*velocity of flywheel motor*/ < flywheelTargetSpeed) ? (127) : (0));
+
+		while (abs(flywheelTargetSpeed - /*velocity of flywheel motor*/ * gearRatio) > bangBangErrorMargin * flywheelTargetSpeed) { EndTimeSlice(); }
+
+		setLauncherPower(flywheelDefaultPower);
+	}
+}
 
 task cataChooChoo()
 {
