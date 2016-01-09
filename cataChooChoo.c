@@ -59,6 +59,7 @@ bool continuousFeedRunning = false; //continuous feed
 #define giraffeUpBtn Btn8U
 #define giraffeDownBtn Btn8D
 #define continuousCatapultBtn Btn8R
+#define continuousFeedBtn Btn8L
 
 #define fireDuration 300 //amount of time motors run during firing
 #define stillSpeed 15
