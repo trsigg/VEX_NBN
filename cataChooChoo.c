@@ -40,6 +40,9 @@ bool loadRunning = false;
 bool continuousFire = false;
 int shotsFired = 0;
 int ballsToLoadAndFire;
+//to calculate resistor cutoff
+float resistorAvg = 0;
+int resistorCutoff;
 
 bool feedToTopRunning = false; //feedToTop
 bool cockCatapultRunning = false; //cockCatapult
@@ -68,7 +71,9 @@ bool continuousCatapultRunning = false; //continuous catapult
 #define giraffeUpwardPower 80
 #define giraffeDownwardPower -60
 #define giraffeStillSpeed 20
-#define resistorCutoff 700
+#define resistorSlope 0.37463777547902
+#define resistorIntercept 781.44599343714
+#define resistorSampleDelay 200
 #define feedBackwardTime 250
 #define coeff 5 //coefficient for driveStraight adjustments
 
@@ -377,10 +382,21 @@ void emergencyStop()
 void pre_auton()
 {
   bStopTasksBetweenModes = true;
+
+  resistorAvg = SensorValue[chooResistor];
+  int resistorSamples = 2;
+  while (true)
+  {
+  	resistorAvg = resistorAvg * (resistorSamples - 1) / resistorSamples + SensorValue[chooResistor] / resistorSamples;
+  	resistorSamples ++;
+  	wait1Msec(resistorSampleDelay);
+  }
 }
 
 task autonomous()
 {
+	resistorCutoff = (int)(resistorAvg * resistorSlope + resistorIntercept);
+
 	motor[giraffe] = giraffeStillSpeed;
 	ballsToLoadAndFire = 1;
 

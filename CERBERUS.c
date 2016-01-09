@@ -16,12 +16,6 @@
 
 #pragma platform(VEX)
 
-/*
-Right buttons should control feed
-LU should control catapults while they are firing and should be continuous fire when flywheel is
-LD should be fire once when flywheel is firing
-*/
-
 //Competition Control and Duration Settings
 #pragma competitionControl(Competition)
 #pragma autonomousDuration(20)
@@ -121,18 +115,18 @@ void setDrivePower(int right, int left)
 
 task flywheel()
 {
+	int prevError = flywheelTargetSpeed - /*velocity of flywheel motor*/;
+	int error;
+	int integral = 0;
+	
 	while (true)
 	{
-		int prevError = flywheelTargetSpeed - /*velocity of flywheel motor*/;
-		int error;
-		int integral = 0;
-		
 		while ((abs((flywheelTargetSpeed - /*velocity of flywheel motor*/) * gearRatio) < bangBangErrorMargin * flywheelTargetSpeed) //PID control
 		{
 			wait1Msec(sampleTime);
 			error = (flywheelTargetSpeed - /*velocity of flywheel motor*/) * gearRatio;
 
-			if ((abs(error) < integralMargin * flywheelTargetSpeed)
+			if (abs(error) < integralMargin * flywheelTargetSpeed)
 			{
 				integral += error;
 			}
@@ -142,7 +136,7 @@ task flywheel()
 		}
 
 		//bang bang control
-		resetPID();
+		resetPID(); //remove
 		setLauncherPower((/*velocity of flywheel motor*/ < flywheelTargetSpeed) ? (127) : (0));
 
 		while (abs(flywheelTargetSpeed - /*velocity of flywheel motor*/ * gearRatio) > bangBangErrorMargin * flywheelTargetSpeed) { EndTimeSlice(); }
