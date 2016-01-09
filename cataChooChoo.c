@@ -39,12 +39,12 @@ bool loadRunning = false;
 //fire
 bool continuousFire = false;
 //to calculate resistor cutoff
-float resistorAvg = 0;
-int resistorCutoff;
+//float resistorAvg = 0;
+//int resistorCutoff;
 
 bool feedToTopRunning = false; //feedToTop
 bool cockCatapultRunning = false; //cockCatapult
-bool calibratingResistor = false;
+//bool calibratingResistor = false;
 bool continuousCatapultRunning = false; //continuous catapult
 
 //group 5
@@ -61,7 +61,7 @@ bool continuousCatapultRunning = false; //continuous catapult
 //group 8
 #define giraffeUpBtn Btn8U
 #define giraffeDownBtn Btn8D
-#define calibrateResistorBtn Btn8L
+//#define calibrateResistorBtn Btn8L
 #define continuousCatapultBtn Btn8R
 
 #define fireDuration 300 //amount of time motors run during firing
@@ -77,6 +77,8 @@ bool continuousCatapultRunning = false; //continuous catapult
 #define feedBackwardTime 250
 #define coeff 5 //coefficient for driveStraight adjustments
 #define settlingTime 125
+//#define resistorCutoff 869 //for competition
+#define resistorCutoff 824 //for driver skillz
 
 //set functions region
 void setFeedPower(int power)
@@ -319,28 +321,28 @@ task continuousCatapult()
     continuousCatapultRunning = false;
 }
 
-task calibrateResistor()
+/*task calibrateResistor()
 {
 	calibratingResistor = true;
-	//int feedPower = 60;
+	int feedPower = 60;
 	resistorAvg = SensorValue[chooResistor];
 	for (int samples = 2; samples < numResistorSamples + 1; samples++)
 	{
 		resistorAvg = resistorAvg * (samples - 1) / samples + SensorValue[chooResistor] / samples;
-		/*feedPower = (int)(1.02 * feedPower);
-		setFeedPower(feedPower);*/
+		feedPower = (int)(1.02 * feedPower);
+		setFeedPower(feedPower);
 		wait1Msec(resistorSampleDelay);
 	}
 	resistorCutoff = (int)(resistorAvg * resistorSlope + resistorIntercept) - resistorShift;
 	setFeedPower(0);
 	calibratingResistor = false;
-}
+}*/
 
 task autoBehaviors()
 {
 	while (true)
 	{
-		while (vexRT[continuousFireBtn] == 0 && vexRT[fireOnceBtn] == 0 && vexRT[loadBtn] == 0 && vexRT[calibrateResistorBtn] == 0 && vexRT[continuousCatapultBtn] == 0) { EndTimeSlice(); }
+		while (vexRT[continuousFireBtn] == 0 && vexRT[fireOnceBtn] == 0 && vexRT[loadBtn] == 0 /*&& vexRT[calibrateResistorBtn] == 0*/ && vexRT[continuousCatapultBtn] == 0) { EndTimeSlice(); }
 
 		if (vexRT[continuousFireBtn] == 1)
 		{
@@ -357,10 +359,10 @@ task autoBehaviors()
 			startTasksAfterCompletion = true;
 			startTask(load);
 		}
-		else if (vexRT[calibrateResistorBtn] == 1 && !calibratingResistor)
+		/*else if (vexRT[calibrateResistorBtn] == 1 && !calibratingResistor)
 		{
 			startTask(calibrateResistor);
-		}
+		}*/
 		else if (vexRT[continuousCatapultBtn] == 1 && !continuousCatapultRunning)
 		{
 			startTask(continuousCatapult);
@@ -378,7 +380,7 @@ void emergencyStop()
 	stopTask(feedToTop);
 	stopTask(fire);
 	stopTask(continuousCatapult);
-	stopTask(calibrateResistor);
+	//stopTask(calibrateResistor);
 	stopTask(autoBehaviors);
 
 	startTask(usercontrol);
@@ -388,7 +390,7 @@ void pre_auton()
 {
   bStopTasksBetweenModes = true;
 
-  startTask(calibrateResistor);
+  //startTask(calibrateResistor);
 }
 
 task autonomous()
