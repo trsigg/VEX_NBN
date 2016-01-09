@@ -389,14 +389,14 @@ task autonomous()
 {
 	motor[giraffe] = giraffeStillSpeed;
 
-	if (SensorValue[chooResistor] > resistorCutoff) //fires initial preload if loaded
-	{
+	//if (SensorValue[chooResistor] > resistorCutoff) //fires initial preload if loaded
+	//{
 		setChooPower(127);
 		while (SensorValue[chooSwitch] == 1) {}
 		while (SensorValue[chooSwitch] == 0) {}
 		wait1Msec(fireDuration);
 		continuousFire = true;
-	}
+	//}
 
 	//loads and fires other preloads
 	startTask(fire);
