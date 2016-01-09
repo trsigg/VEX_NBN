@@ -44,9 +44,8 @@ int resistorCutoff;
 
 bool feedToTopRunning = false; //feedToTop
 bool cockCatapultRunning = false; //cockCatapult
-bool continuousFeedRunning = false; //continuous feed
+bool calibratingResistor = false;
 bool continuousCatapultRunning = false; //continuous catapult
-bool debug = false; //debug
 
 //group 5
 #define progressCataChooChooBtn Btn5U
@@ -62,7 +61,7 @@ bool debug = false; //debug
 //group 8
 #define giraffeUpBtn Btn8U
 #define giraffeDownBtn Btn8D
-#define continuousFeedBtn Btn8L
+#define calibrateResistorBtn Btn8L
 #define continuousCatapultBtn Btn8R
 
 #define fireDuration 300 //amount of time motors run during firing
@@ -296,20 +295,6 @@ task fire()
 	continuousFire = false;
 }
 
-task continuousFeed()
-{
-    stopTask(feedControl);
-    continuousFeedRunning = true;
-    setFeedPower(127);
-    while(vexRT[continuousFeedBtn] == 1) { EndTimeSlice(); } //waits for button to be released
-    while(vexRT[continuousFeedBtn] == 0) { EndTimeSlice(); }
-    setFeedPower(0);
-    startTask(feedControl);
-
-    while(vexRT[continuousFeedBtn] == 1) { EndTimeSlice(); }
-    continuousFeedRunning = false;
-}
-
 task continuousCatapult()
 {
     stopTask(cataChooChoo);
@@ -334,11 +319,28 @@ task continuousCatapult()
     continuousCatapultRunning = false;
 }
 
+task calibrateResistor()
+{
+	calibratingResistor = true;
+	//int feedPower = 60;
+  resistorAvg = SensorValue[chooResistor];
+  for (int samples = 2; samples < numResistorSamples + 1; samples++)
+  {
+  	resistorAvg = resistorAvg * (samples - 1) / samples + SensorValue[chooResistor] / samples;
+  	/*feedPower = (int)(1.02 * feedPower);
+  	setFeedPower(feedPower);*/
+  	wait1Msec(resistorSampleDelay);
+  }
+  resistorCutoff = (int)(resistorAvg * resistorSlope + resistorIntercept) - resistorShift;
+  setFeedPower(0);
+  calibratingResistor = false;
+}
+
 task autoBehaviors()
 {
 	while (true)
 	{
-		while (vexRT[continuousFireBtn] == 0 && vexRT[fireOnceBtn] == 0 && vexRT[loadBtn] == 0 && vexRT[continuousFeedBtn] == 0 && vexRT[continuousCatapultBtn] == 0) { EndTimeSlice(); }
+		while (vexRT[continuousFireBtn] == 0 && vexRT[fireOnceBtn] == 0 && vexRT[loadBtn] == 0 && vexRT[calibrateResistorBtn] == 0 && vexRT[continuousCatapultBtn] == 0) { EndTimeSlice(); }
 
 		if (vexRT[continuousFireBtn] == 1)
 		{
@@ -355,9 +357,9 @@ task autoBehaviors()
 			startTasksAfterCompletion = true;
 			startTask(load);
 		}
-		else if (vexRT[continuousFeedBtn] == 1 && !continuousFeedRunning)
+		else if (vexRT[calibrateResistorBtn] == 1 && !calibratingResistor)
 		{
-			startTask(continuousFeed);
+			startTask(calibrateResistor);
 		}
 		else if (vexRT[continuousCatapultBtn] == 1 && !continuousCatapultRunning)
 		{
@@ -376,7 +378,7 @@ void emergencyStop()
 	stopTask(feedToTop);
 	stopTask(fire);
 	stopTask(continuousCatapult);
-	stopTask(continuousFeed);
+	stopTask(calibrateResistor);
 	stopTask(autoBehaviors);
 
 	startTask(usercontrol);
@@ -386,14 +388,7 @@ void pre_auton()
 {
   bStopTasksBetweenModes = true;
 
-  //calculates resistorCutoff
-  resistorAvg = SensorValue[chooResistor];
-  for (int samples = 2; samples < numResistorSamples + 1; samples++)
-  {
-  	resistorAvg = resistorAvg * (samples - 1) / samples + SensorValue[chooResistor] / samples;
-  	wait1Msec(resistorSampleDelay);
-  }
-  resistorCutoff = (int)(resistorAvg * resistorSlope + resistorIntercept) - resistorShift;
+  startTask(calibrateResistor);
 }
 
 task autonomous()
@@ -431,3 +426,32 @@ task usercontrol()
 		emergencyStop();
 	}
 }
+
+/*
+GRAVEYARD
+
+task continuousFeed()
+{
+    stopTask(feedControl);
+    continuousFeedRunning = true;
+    setFeedPower(127);
+    while(vexRT[continuousFeedBtn] == 1) { EndTimeSlice(); } //waits for button to be released
+    while(vexRT[continuousFeedBtn] == 0) { EndTimeSlice(); }
+    setFeedPower(0);
+    startTask(feedControl);
+
+    while(vexRT[continuousFeedBtn] == 1) { EndTimeSlice(); }
+    continuousFeedRunning = false;
+}
+#top of file
+bool continuousFeedRunning = false; //continuous feed
+#autoBehaviors
+	...&& vexRT[continuousFeedBtn] == 0...
+		else if (vexRT[continuousFeedBtn] == 1 && !continuousFeedRunning)
+		{
+			startTask(continuousFeed);
+		}
+#emergencyStop
+	stopTask(continuousFeed);
+
+*/
