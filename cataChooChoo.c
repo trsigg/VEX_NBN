@@ -38,8 +38,6 @@ bool startTasksAfterCompletion = true;
 bool loadRunning = false;
 //fire
 bool continuousFire = false;
-int shotsFired = 0;
-int ballsToLoadAndFire;
 //to calculate resistor cutoff
 float resistorAvg = 0;
 int resistorCutoff;
@@ -48,6 +46,7 @@ bool feedToTopRunning = false; //feedToTop
 bool cockCatapultRunning = false; //cockCatapult
 bool continuousFeedRunning = false; //continuous feed
 bool continuousCatapultRunning = false; //continuous catapult
+bool debug = false; //debug
 
 //group 5
 #define progressCataChooChooBtn Btn5U
@@ -73,9 +72,12 @@ bool continuousCatapultRunning = false; //continuous catapult
 #define giraffeStillSpeed 20
 #define resistorSlope 0.37463777547902
 #define resistorIntercept 781.44599343714
-#define resistorSampleDelay 200
+#define resistorShift 40
+#define resistorSampleDelay 100
+#define numResistorSamples 25
 #define feedBackwardTime 250
 #define coeff 5 //coefficient for driveStraight adjustments
+#define settlingTime 125
 
 //set functions region
 void setFeedPower(int power)
@@ -281,9 +283,10 @@ task fire()
 
 		while (loadRunning) { EndTimeSlice(); }
 
+		wait1Msec(settlingTime);
+
 		setChooPower(127);
 		wait1Msec(fireDuration);
-		shotsFired++;
 	} while(continuousFire && vexRT[continuousFireBtn] == 0);
 
 	setChooPower(0);
@@ -383,22 +386,19 @@ void pre_auton()
 {
   bStopTasksBetweenModes = true;
 
+  //calculates resistorCutoff
   resistorAvg = SensorValue[chooResistor];
-  int resistorSamples = 2;
-  while (true)
+  for (int samples = 2; samples < numResistorSamples + 1; samples++)
   {
-  	resistorAvg = resistorAvg * (resistorSamples - 1) / resistorSamples + SensorValue[chooResistor] / resistorSamples;
-  	resistorSamples ++;
+  	resistorAvg = resistorAvg * (samples - 1) / samples + SensorValue[chooResistor] / samples;
   	wait1Msec(resistorSampleDelay);
   }
+  resistorCutoff = (int)(resistorAvg * resistorSlope + resistorIntercept) - resistorShift;
 }
 
 task autonomous()
 {
-	resistorCutoff = (int)(resistorAvg * resistorSlope + resistorIntercept);
-
 	motor[giraffe] = giraffeStillSpeed;
-	ballsToLoadAndFire = 1;
 
 	if (SensorValue[chooResistor] > resistorCutoff) //fires initial preload if loaded
 	{
@@ -406,20 +406,11 @@ task autonomous()
 		while (SensorValue[chooSwitch] == 1) {}
 		while (SensorValue[chooSwitch] == 0) {}
 		wait1Msec(fireDuration);
-		ballsToLoadAndFire = 3;
+		continuousFire = true;
 	}
 
 	//loads and fires other preloads
-	shotsFired = 0;
-  continuousFire = true;
 	startTask(fire);
-
-	while (shotsFired < ballsToLoadAndFire) { EndTimeSlice(); }
-
-  continuousFire = false;
-
-  setChooPower(0);
-  motor[giraffe] = 0;
 }
 
 task usercontrol()
