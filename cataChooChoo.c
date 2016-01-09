@@ -323,17 +323,17 @@ task calibrateResistor()
 {
 	calibratingResistor = true;
 	//int feedPower = 60;
-  resistorAvg = SensorValue[chooResistor];
-  for (int samples = 2; samples < numResistorSamples + 1; samples++)
-  {
-  	resistorAvg = resistorAvg * (samples - 1) / samples + SensorValue[chooResistor] / samples;
-  	/*feedPower = (int)(1.02 * feedPower);
-  	setFeedPower(feedPower);*/
-  	wait1Msec(resistorSampleDelay);
-  }
-  resistorCutoff = (int)(resistorAvg * resistorSlope + resistorIntercept) - resistorShift;
-  setFeedPower(0);
-  calibratingResistor = false;
+	resistorAvg = SensorValue[chooResistor];
+	for (int samples = 2; samples < numResistorSamples + 1; samples++)
+	{
+		resistorAvg = resistorAvg * (samples - 1) / samples + SensorValue[chooResistor] / samples;
+		/*feedPower = (int)(1.02 * feedPower);
+		setFeedPower(feedPower);*/
+		wait1Msec(resistorSampleDelay);
+	}
+	resistorCutoff = (int)(resistorAvg * resistorSlope + resistorIntercept) - resistorShift;
+	setFeedPower(0);
+	calibratingResistor = false;
 }
 
 task autoBehaviors()
