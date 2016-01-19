@@ -86,11 +86,6 @@ void initializeTasks()
 	}
 }
 
-void resetPID()
-{
-
-}
-
 //set functions region
 void setFeedPower(int power)
 {
@@ -100,7 +95,7 @@ void setFeedPower(int power)
 
 void setLauncherPower(int power) //set limits for different velocity ranges
 {
-	motor[cebe] = limit(power, 0, maxPower());
+	motor[cebe] = limit(power, 0, maxPower()); //if limit(power, 0, 127) > maxPower { targetPower = power; startTask(spinUp); }
 	motor[rus] = limit(power, 0, maxPower());
 }
 

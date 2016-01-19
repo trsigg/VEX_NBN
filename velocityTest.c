@@ -25,6 +25,10 @@
 #define upOneBtn Btn8U
 #define downOneBtn Btn8D
 
+#define sampleTime 50.0
+
+float velocity = 0.0;
+
 int limit(int input, int max, int min)
 {
 	if (abs(input) <= max && abs(input) >= min)
@@ -43,18 +47,92 @@ void setFeedPower(int power)
 	motor[seymore] = power;
 }
 
+void setLauncherPower(int power)
+{
+	motor[cebe] = limit(power, 0, 127);
+	motor[rus] = limit(power, 0, 127);
+}
+
+void spinUp()
+{
+	for (int power = 30, power <= 90, power += 30)
+	{
+		setLauncherPower(power);
+		wait1Msec(1000);
+	}
+}
+
 task feedControl()
 {
 	while (true)
 	{
 		while (vexRT[feedInBtn] == 0 && vexRT[feedOutBtn] == 0) { EndTimeSlice(); }
+		if (vexRT[feedInBtn] == 1)
+		{
+			setFeedPower(127);
+			while (vexRT[feedInBtn] == 1) { EndTimeSlice(); }
+		}
+		else
+		{
+			setFeedPower(-127);
+			while (vexRT[feedOutBtn] == 1) { EndTimeSlice(); }
+		}
+		setFeedPower(0);
+	}
+}
 
+task calcVelocity()
+{
+	float velocities[5] = {0, 0, 0, 0, 0};
+	while (true)
+	{
+		for (int i = 0; i < 5; i++)
+		{
+			SensorValue[launcherEncoder] = 0;
+			wait1Msec(sampleTime);
+			velocities[i] = SensorValue[launcherEncoder] / sampleTime;
+			velocity = (velocities[0] + velocities[1] + velocities[2] + velocities[3] + velocities[4]) / 5;
+		}
 	}
 }
 
 task main()
 {
-
-
-
+	int power = 90;
+	spinUp();
+	while (true)
+	{
+		if (vexRT[upTwentyBtn])
+		{
+			power += 20;
+		}
+		else if (vexRT[upTenBtn])
+		{
+			power += 10;
+		}
+		else if (vexRT[upFiveBtn])
+		{
+			power += 5;
+		}
+		else if (vexRT[upOneBtn])
+		{
+			power += 1;
+		}
+		else if (vexRT[downTwentyBtn])
+		{
+			power -= 20;
+		}
+		else if (vexRT[downTenBtn])
+		{
+			power -= 10;
+		}
+		else if (vexRT[downFiveBtn])
+		{
+			power -= 5;
+		}
+		else if (vexRT[downOneBtn])
+		{
+			power -= 1;
+		}
+	}
 }
