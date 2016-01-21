@@ -41,27 +41,11 @@ float targetVelocity = 0;
 int flywheelPower = 0;
 int targetPower = 0;
 
-int limit(int input, int max, int min)
+//set functions region
+void setFeedPower(int top, int bottom)
 {
-	if (abs(input) <= max && abs(input) >= min)
-	{
-		return input;
-	}
-	else
-	{
-		return ((abs(input) > max) ? (max * sgn(input)) : (min * sgn(input)));
-	}
-}
-
-bool shouldFire()
-{
-	if
-}
-
-void setFeedPower(int power)
-{
-	motor[feedMe] = power;
-	motor[seymore] = power;
+	motor[feedMe] = top;
+	motor[seymore] = bottom;
 }
 
 void setDrivePower(int right, int left)
@@ -82,6 +66,54 @@ void setLauncherPower(int power)
 	flywheelPower = adjustedPower;
 }
 
+task spinUpControl()
+{
+	while (targetPower == flywheelPower) { EndTimeSlice(); }
+	while (targetPower - flywheelPower > maxAcc)
+	{
+		setLauncherPower(flywheelPower + maxAcc);
+		wait1Msec(250);
+	}
+}
+//end set functions region
+
+//begin helper functions region
+int limit(int input, int max, int min)
+{
+	if (abs(input) <= max && abs(input) >= min)
+	{
+		return input;
+	}
+	else
+	{
+		return ((abs(input) > max) ? (max * sgn(input)) : (min * sgn(input)));
+	}
+}
+
+bool shouldFire()
+{
+	if (continuousFire)
+	{
+		if (vexRT[stopFireBtn] == 0)
+		{
+			return true;
+		}
+		else
+		{
+			continuousFire = false;
+			return false;
+		}
+	}
+	else if (vexRT[fireBtn] == 1)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 task calcVelocity()
 {
 	while (true)
@@ -92,33 +124,10 @@ task calcVelocity()
 		velocityUpdated = true;
 	}
 }
+//end helper functions region
 
-task feedToTop() //loads a ball
-{
-	stopTask(feedControl);
-	while (
-}
 
-task fireControl() //waits for ideal launch conditions and then fire
-{
-	while (true)
-	{
-		while (vexRT[continuousFireBtn] == 0 && vexRT[fireBtn] == 0) { EndTimeSlice(); }
-		continuousFire = vexRT[continuousFireBtn] == 1;
-		startTask(feedToTop);
-		while (vexRT[fireBtn] == 1 || continuousFire && vexRT[stopFireBtn] == 1)
-		{
-			while (SensorValue[feedSwitch] == 1 && (continuousFire && vexRT[stopFireBtn] == 0 || vexRT[fireBtn] == 1))
-			if (abs(targetVelocity - flywheelVelocity) < targetVelocity * fireErrorMargin && (continuousFire && vexRT[stopFireBtn] == 0 || vexRT[fireBtn] == 1) /*move to shouldFire along with continuousFire updating*/)
-			{
-
-			}
-		}
-		stopTask(feedToTop);
-		startTask(feedControl);
-	}
-}
-
+//begin user input region
 task feedControl() //
 {
 
@@ -133,17 +142,37 @@ task flywheel() //modulates motor powers to maintain constant flywheel velocity
 {
 
 }
+//end user input region
 
-task spinUpControl()
+//begin autobehaviors region
+task feedToTop() //loads a ball
 {
-	while (targetPower == flywheelPower) { EndTimeSlice(); }
-	while (targetPower - flywheelPower > maxAcc)
-	{
-		setLauncherPower(flywheelPower + );
-		wait1Msec(250);
-	}
+	//toggleFeed();
+	//while (
 }
 
+task fireControl() //waits for ideal launch conditions and then fire
+{
+	while (true)
+	{
+		while (vexRT[continuousFireBtn] == 0 && vexRT[fireBtn] == 0) { EndTimeSlice(); }
+		continuousFire = vexRT[continuousFireBtn] == 1;
+		startTask(feedToTop);
+		do
+		{
+			while (SensorValue[feedSwitch] == 1 && shouldFire()) { EndTimeSlice(); }
+			if (abs(targetVelocity - flywheelVelocity) < targetVelocity * fireErrorMargin && shouldFire())
+			{
+
+			}
+		} while(shouldFire());
+		stopTask(feedToTop);
+		//startTask(feedControl);
+	}
+}
+//end autobehaviors region
+
+//begin task control region
 task taskControl()
 {
 
@@ -179,6 +208,7 @@ void emergencyStop()
 
 	initializeTasks();
 }
+//end task control region
 
 void pre_auton() { bStopTasksBetweenModes = true; }
 
