@@ -22,7 +22,7 @@
 #define maxAcc 50 //the maximum amount a motor's power value can be safely changed in a quarter second
 #define fireErrorMargin .05 //percent error allowable in flywheel velocity for firing
 #define sampleTime 50 //number of milliseconds between sampling the flywheel velocity and control adjustments in flywheel task
-#define gearRatio 1 //gear ratio between flywheelEncoder and flywheel
+#define gearRatio 3 //gear ratio between flywheelEncoder and flywheel
 //PID constants
 #define kp 1 //TO TUNE
 #define ki 1 //TO TUNE
