@@ -1,10 +1,10 @@
 #pragma config(I2C_Usage, I2C1, i2cSensors)
 #pragma config(Sensor, dgtl1,  flywheelEncoder, sensorQuadEncoder)
 #pragma config(Sensor, I2C_2,  ,               sensorQuadEncoderOnI2CPort,    , AutoAssign )
-#pragma config(Motor,  port1,           ce,            tmotorVex393_HBridge, openLoop)
-#pragma config(Motor,  port2,           rb,            tmotorVex393_MC29, openLoop)
-#pragma config(Motor,  port3,           er,            tmotorVex393_MC29, openLoop, reversed)
-#pragma config(Motor,  port4,           us,            tmotorVex393_MC29, openLoop, reversed)
+#pragma config(Motor,  port1,           ce,            tmotorVex393_HBridge, openLoop, reversed)
+#pragma config(Motor,  port2,           rb,            tmotorVex393_MC29, openLoop, reversed)
+#pragma config(Motor,  port3,           er,            tmotorVex393_MC29, openLoop)
+#pragma config(Motor,  port4,           us,            tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port5,           rfd,           tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port6,           rbd,           tmotorVex393_MC29, openLoop, encoderPort, I2C_2)
 #pragma config(Motor,  port7,           lfd,           tmotorVex393_MC29, openLoop, reversed)
@@ -47,11 +47,10 @@ void setFeedPower(int power)
 }
 
 void setLauncherPower(int power) {
-	int adjustedPower = limit(power, 0, 127);
-	motor[ce] = adjustedPower;
-	motor[rb] = adjustedPower;
-	motor[er] = adjustedPower;
-	motor[us] = adjustedPower;
+	motor[ce] = power;
+	motor[rb] = power;
+	motor[er] = power;
+	motor[us] = power;
 }
 
 void setDrivePower(int right, int left) {
@@ -107,9 +106,9 @@ task calcVelocity()
 task main()
 {
 	int power = 90;
+	spinUp();
 	startTask(feedControl);
 	startTask(calcVelocity);
-	spinUp();
 	while (true)
 	{
 		if (vexRT[upTwentyBtn])
@@ -155,5 +154,6 @@ task main()
 
 		setLauncherPower(power);
 		setDrivePower(vexRT[Ch2], vexRT[Ch3]);
+		EndTimeSlice();
 	}
 }

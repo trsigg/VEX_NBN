@@ -19,7 +19,7 @@
 #pragma userControlDuration(120)
 #include "Vex_Competition_Includes.c"   //Main competition background code...do not modify!
 
-#define maxAcc 50 //the maximum amount a motor's power value can be safely changed in a quarter second
+#define maxAcc 30 //the maximum amount a motor's power value can be safely changed in .1 seconds
 #define fireErrorMargin .05 //percent error allowable in flywheel velocity for firing
 #define sampleTime 50 //number of milliseconds between sampling the flywheel velocity and control adjustments in flywheel task
 #define gearRatio 3 //gear ratio between flywheelEncoder and flywheel
@@ -66,8 +66,7 @@ bool shouldFire() {
 			continuousFire = false;
 			return false;
 		}
-	}
-	else if (vexRT[fireBtn] == 1)	{
+	}	else if (vexRT[fireBtn] == 1)	{
 		return true;
 	}	else {
 		return false;
@@ -116,7 +115,7 @@ task spinUpControl() {
 	while (targetPower - flywheelPower > maxAcc)
 	{
 		setLauncherPower(flywheelPower + maxAcc);
-		wait1Msec(250);
+		wait1Msec(100);
 	}
 }
 //end set functions region
