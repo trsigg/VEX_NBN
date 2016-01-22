@@ -28,7 +28,7 @@
 
 float velocity = 0.0;
 
-int limit(int input, int max, int min)
+int limit(int input, int min, int max)
 {
 	if (abs(input) <= max && abs(input) >= min)
 	{
@@ -47,10 +47,11 @@ void setFeedPower(int power)
 }
 
 void setLauncherPower(int power) {
-	motor[ce] = power;
-	motor[rb] = power;
-	motor[er] = power;
-	motor[us] = power;
+	int adjustedPower = limit(power, 0, 127);
+	motor[ce] = adjustedPower;
+	motor[rb] = adjustedPower;
+	motor[er] = adjustedPower;
+	motor[us] = adjustedPower;
 }
 
 void setDrivePower(int right, int left) {
