@@ -63,8 +63,8 @@ bool continuousFeedRunning = false; //continuous feed
 
 #define fireDuration 300 //amount of time motors run during firing
 #define stillSpeed 15
-#define giraffeUpwardPower 80
-#define giraffeDownwardPower -60
+#define giraffeUpwardPower 127
+#define giraffeDownwardPower -127
 #define giraffeStillSpeed 20
 #define resistorSlope 0.37463777547902
 #define resistorIntercept 781.44599343714
@@ -74,7 +74,7 @@ bool continuousFeedRunning = false; //continuous feed
 #define feedBackwardTime 250
 #define coeff 5 //coefficient for driveStraight adjustments
 #define settlingTime 125
-#define resistorCutoff 869 //for competition
+#define resistorCutoff 650 //for competition
 //#define resistorCutoff 824 //for driver skillz
 
 //set functions region
@@ -132,16 +132,20 @@ task giraffeControl()
 	{
 		motor[giraffe] = giraffeStillSpeed;
 		while (vexRT[giraffeUpBtn] == 0 && vexRT[giraffeDownBtn] == 0) { EndTimeSlice(); }
-
+		clearTimer(T1);
 		if (vexRT[giraffeUpBtn] == 1)
 		{
 			motor[giraffe] = giraffeUpwardPower;
-			while (vexRT[giraffeUpBtn] == 1) {}
+			while (vexRT[giraffeUpBtn] == 1 && time1(T1) < 2200) { EndTimeSlice(); }
+			while (vexRT[giraffeUpBtn] == 0 && time1(T1) < 2200) { EndTimeSlice(); }
+			while (vexRT[giraffeUpBtn] == 1 && time1(T1) < 2200) { EndTimeSlice(); }
 		}
 		else //giraffeDownBtn is pressed
 		{
 			motor[giraffe] = giraffeDownwardPower;
-			while (vexRT[giraffeDownBtn] == 1) {}
+			while (vexRT[giraffeDownBtn] == 1 && time1(T1) < 2350) { EndTimeSlice(); }
+			while (vexRT[giraffeDownBtn] == 0 && time1(T1) < 2350) { EndTimeSlice(); }
+			while (vexRT[giraffeDownBtn] == 1 && time1(T1) < 2350) { EndTimeSlice(); }
 		}
 	}
 }
@@ -387,16 +391,17 @@ void pre_auton()
 
 task autonomous()
 {
+	continuousFire = false;
 	motor[giraffe] = giraffeStillSpeed;
 
-	//if (SensorValue[chooResistor] > resistorCutoff) //fires initial preload if loaded
-	//{
+	if (SensorValue[chooResistor] > resistorCutoff) //fires initial preload if loaded
+	{
 		setChooPower(127);
 		while (SensorValue[chooSwitch] == 1) {}
 		while (SensorValue[chooSwitch] == 0) {}
 		wait1Msec(fireDuration);
 		continuousFire = true;
-	//}
+	}
 
 	//loads and fires other preloads
 	startTask(fire);

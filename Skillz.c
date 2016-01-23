@@ -63,8 +63,8 @@ bool continuousFeedRunning = false; //continuous feed
 
 #define fireDuration 300 //amount of time motors run during firing
 #define stillSpeed 15
-#define giraffeUpwardPower 80
-#define giraffeDownwardPower -60
+#define giraffeUpwardPower 127
+#define giraffeDownwardPower -127
 #define giraffeStillSpeed 20
 #define resistorSlope 0.37463777547902
 #define resistorIntercept 781.44599343714
@@ -74,7 +74,7 @@ bool continuousFeedRunning = false; //continuous feed
 #define feedBackwardTime 250
 #define coeff 5 //coefficient for driveStraight adjustments
 #define settlingTime 125
-#define resistorCutoff 869 //for competition
+#define resistorCutoff 720 //for competition
 //#define resistorCutoff 824 //for driver skillz
 
 //set functions region
@@ -136,12 +136,12 @@ task giraffeControl()
 		if (vexRT[giraffeUpBtn] == 1)
 		{
 			motor[giraffe] = giraffeUpwardPower;
-			while (vexRT[giraffeUpBtn] == 1) {}
+			while (vexRT[giraffeUpBtn] == 1) { EndTimeSlice(); }
 		}
 		else //giraffeDownBtn is pressed
 		{
 			motor[giraffe] = giraffeDownwardPower;
-			while (vexRT[giraffeDownBtn] == 1) {}
+			while (vexRT[giraffeDownBtn] == 1) { EndTimeSlice(); }
 		}
 	}
 }
@@ -385,6 +385,65 @@ void pre_auton()
   bStopTasksBetweenModes = true;
 }
 
+task usercontrol()
+{
+	startTask(cataChooChoo);
+	startTask(feedControl);
+	startTask(autoBehaviors);
+	startTask(giraffeControl);
+
+	while (true)
+	{
+		while (vexRT[emergencyStopBtn] == 0)
+		{
+			setDrivePower(vexRT[Ch2], vexRT[Ch3]);
+			EndTimeSlice();
+		}
+
+		emergencyStop();
+	}
+}
+
+/*
+GRAVEYARD
+
+task calibrateResistor()
+{
+	calibratingResistor = true;
+	int feedPower = 60;
+	resistorAvg = SensorValue[chooResistor];
+	for (int samples = 2; samples < numResistorSamples + 1; samples++)
+	{
+		resistorAvg = resistorAvg * (samples - 1) / samples + SensorValue[chooResistor] / samples;
+		feedPower = (int)(1.02 * feedPower);
+		setFeedPower(feedPower);
+		wait1Msec(resistorSampleDelay);
+	}
+	resistorCutoff = (int)(resistorAvg * resistorSlope + resistorIntercept) - resistorShift;
+	setFeedPower(0);
+	calibratingResistor = false;
+}
+#top of file
+//to calculate resistor cutoff
+//float resistorAvg = 0;
+//int resistorCutoff;
+#
+//bool calibratingResistor = false;
+#
+//#define calibrateResistorBtn Btn8L
+#autoBehaviors
+	...&& vexRT[calibrateResistorBtn] == 0
+#
+		else if (vexRT[calibrateResistorBtn] == 1 && !calibratingResistor)
+		{
+			startTask(calibrateResistor);
+		}
+#emergencyStop
+	stopTask(calibrateResistor);
+#pre_auton
+  //startTask(calibrateResistor);
+*/
+
 
 task autonomous()
 {
@@ -405,23 +464,4 @@ task autonomous()
 
   	while(SensorValue[chooSwitch] == 0) {}
   }
-}
-
-task usercontrol()
-{
-	startTask(cataChooChoo);
-	startTask(feedControl);
-	startTask(autoBehaviors);
-	startTask(giraffeControl);
-
-	while (true)
-	{
-		while (vexRT[emergencyStopBtn] == 0)
-		{
-			setDrivePower(vexRT[Ch2], vexRT[Ch3]);
-			EndTimeSlice();
-		}
-
-		emergencyStop();
-	}
 }
