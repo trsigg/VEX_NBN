@@ -30,9 +30,9 @@
 #define bangBangErrorMargin .1 //TO TUNE
 #define integralMargin .075 //TO TUNE
 
-#define fireBtn Btn5U
-#define continuousFireBtn Btn5D
-#define stopFireBtn Btn5U
+#define seymoreInBtn Btn5U
+#define seymoreOutBtn Btn5D
+#define seymoreManualOverrideBtn Btn8U
 #define punchBtn Btn5U
 #define feedInBtn Btn6U
 #define feedOutBtn Btn6D
@@ -52,23 +52,9 @@ int defaultPower = 0;
 int limit(int input, int min, int max) {
 	if (abs(input) <= max && abs(input) >= min) {
 		return input;
-	}	else {
-		return ((abs(input) > max) ? (max * sgn(input)) : (min * sgn(input)));
 	}
-}
-
-bool shouldFire() {
-	if (continuousFire)	{
-		if (vexRT[stopFireBtn] == 0) {
-			return true;
-		} else {
-			continuousFire = false;
-			return false;
-		}
-	} else if (vexRT[fireBtn] == 1)	{
-		return true;
-	} else {
-		return false;
+	else {
+		return ((abs(input) > max) ? (max * sgn(input)) : (min * sgn(input)));
 	}
 }
 
@@ -88,11 +74,6 @@ float getFlywheelVelocity() {
 //end helper functions region
 
 //set functions region
-void setFeedPower(int bottom, int top) {
-	motor[feedMe] = top;
-	motor[seymore] = bottom;
-}
-
 void setDrivePower(int right, int left) {
 	motor[rfdrive] = right;
 	motor[rbdrive] = right;
@@ -111,8 +92,7 @@ void setLauncherPower(int power) {
 task spinUpControl() {
 	while (true) {
 		while (targetPower == flywheelPower) { EndTimeSlice(); }
-		while (targetPower - flywheelPower > maxAcc)
-		{
+		while (targetPower - flywheelPower > maxAcc) {
 			setLauncherPower(flywheelPower + maxAcc);
 			wait1Msec(100);
 		}
@@ -122,17 +102,39 @@ task spinUpControl() {
 //end set functions region
 
 //begin user input region
-task feedControl() {
+task feedMeControl() {
 	while (true) {
 		while (vexRT[feedInBtn] == 0 && vexRT[feedOutBtn] == 0) { EndTimeSlice(); }
 		if (vexRT[feedInBtn] == 1) {
-			setFeedPower(127, 127/*(SensorValue[feedSwitch] == 1 ? 127 : 0)*/);
+			motor[feedMe] = 127;
 			while (vexRT[feedInBtn] == 1) { EndTimeSlice(); }
-		} else {
-			setFeedPower(-127, -127);
+		}
+		else {
+			motor[feedMe] = -127;
 			while (vexRT[feedOutBtn] == 1) { EndTimeSlice(); }
 		}
-		setFeedPower(0, 0);
+		motor[feedMe] = 0;
+	}
+}
+
+task seymoreControl() {
+	bool automaticStop = true;
+
+	while (true) {
+		while (vexRT[seymoreInBtn] == 0 && vexRT[seymoreOutBtn] == 0 && vexRT[seymoreManualOverrideBtn] == 0) { EndTimeSlice(); }
+		if (vexRT[seymoreInBtn] == 1) {
+			motor[seymore] = (SensorValue[feedSwitch] == 1 || abs(targetVelocity - flywheelVelocity) < firingErrorMargin * targetVelocity || !automaticStop ? 127 : 0);
+			while (vexRT[seymoreInBtn] == 1 && (SensorValue[feedSwitch] == 1  || abs(targetVelocity - flywheelVelocity) < firingErrorMargin * targetVelocity || !automaticStop)) { EndTimeSlice(); }
+		}
+		else if (vexRT[seymoreOutBtn] == 1) {
+			motor[seymore] = -127;
+			while (vexRT[seymoreOutBtn] == 1) { EndTimeSlice(); }
+		}
+		else {
+			automaticStop = !automaticStop;
+			while (vexRT[seymoreManualOverrideBtn] == 1) { EndTimeSlice(); }
+		}
+		motor[seymore] = 0;
 	}
 }
 
@@ -166,12 +168,7 @@ task flywheel() {
 }
 
 task flywheelStabilization() { //modulates motor powers to maintain constant flywheel velocity
-	while (true) {
-		targetPower = defaultPower;
-		EndTimeSlice();
-	}
-
-	/*float prevError;
+	float prevError;
 	float error;
 	float integral;
 
@@ -180,11 +177,11 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 		prevError = targetVelocity - getFlywheelVelocity();
 		integral = 0;
 
-		while (abs(flywheelVelocity - getFlywheelVelocity()) * gearRatio < bangBangErrorMargin * flywheelVelocity) //PID control
+		while (abs(flywheelVelocity - getFlywheelVelocity()) < bangBangErrorMargin * flywheelVelocity) //PID control
 		{
 			wait1Msec(sampleTime);
 			while (!velocityUpdated) { EndTimeSlice(); }
-			error = (flywheelVelocity - getFlywheelVelocity()) * gearRatio;
+			error = (flywheelVelocity - getFlywheelVelocity());
 
 			if (abs(error) < integralMargin * flywheelVelocity)
 			{
@@ -198,43 +195,12 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 		//bang bang control
 		setLauncherPower((flywheelVelocity < flywheelVelocity) ? (127) : (0));
 
-		while (abs(flywheelVelocity - flywheelVelocity * gearRatio) > bangBangErrorMargin * flywheelVelocity) { EndTimeSlice(); }
+		while (abs(flywheelVelocity - flywheelVelocity) > bangBangErrorMargin * flywheelVelocity) { EndTimeSlice(); }
 
 		setLauncherPower(defaultPower);
-	}*/
+	}
 }
 //end user input region
-
-//begin autobehaviors region
-task feedToTop() { //loads a ball
-	stopTask(feedControl);
-	setFeedPower(0, 0);
-	while (true) {
-		while (SensorValue[feedSwitch] == 0) { EndTimeSlice(); }
-		setFeedPower(127, 127);
-		while (SensorValue[feedSwitch] == 1) { EndTimeSlice(); }
-		setFeedPower(0, 0);
-	}
-}
-
-task fireControl() { //waits for ideal launch conditions and then fires
-	while (true) {
-		while (vexRT[continuousFireBtn] == 0 && vexRT[fireBtn] == 0) { EndTimeSlice(); }
-		continuousFire = vexRT[continuousFireBtn] == 1;
-		do {
-			startTask(feedToTop);
-			while (SensorValue[feedSwitch] == 1 && abs(targetVelocity - flywheelVelocity) < targetVelocity * fireErrorMargin && shouldFire()) { EndTimeSlice(); }
-			if (shouldFire()) {
-				stopTask(feedToTop);
-				setFeedPower(0, 127);
-				while (SensorValue[feedSwitch] == 0 && shouldFire()) { EndTimeSlice(); } //eventually transition to motor velocity detection
-				setFeedPower(0, 0);
-			}
-		} while(shouldFire() && continuousFire);
-		stopTask(feedToTop);
-	}
-}
-//end autobehaviors region
 
 //begin task control region
 void resetFlywheelVars() {
@@ -252,18 +218,19 @@ task launcherMode() {
 	while (vexRT[switchLauncherModesBtn] == 0) { EndTimeSlice(); }
 	flywheelRunning = !flywheelRunning;
 	if (flywheelRunning) {
+		resetFlywheelVars();
 		stopTask(puncher);
 		startTask(flywheel);
 		startTask(flywheelStabilization);
 		startTask(spinUpControl);
-		startTask(fireControl);
+		startTask(seymoreControl);
 		startTask(calcVelocity);
-		resetFlywheelVars();
-	} else {
+	}
+	else {
 		stopTask(flywheel);
 		stopTask(flywheelStabilization);
 		stopTask(spinUpControl);
-		stopTask(fireControl);
+		stopTask(seymoreControl);
 		stopTask(calcVelocity);
 		startTask(puncher);
 	}
@@ -271,29 +238,29 @@ task launcherMode() {
 
 void initializeTasks() {
 	if (flywheelRunning) {
+		resetFlywheelVars();
 		startTask(flywheel);
 		startTask(flywheelStabilization);
 		startTask(spinUpControl);
-		startTask(fireControl);
+		startTask(seymoreControl);
 		startTask(calcVelocity);
-		resetFlywheelVars();
-	}	else {
+	}
+	else {
 		startTask(puncher);
 	}
 	startTask(launcherMode);
-	startTask(feedControl);
+	startTask(feedMeControl);
 }
 
 void emergencyStop() {
 	stopTask(flywheel);
 	stopTask(flywheelStabilization);
 	stopTask(puncher);
-	stopTask(feedControl);
+	stopTask(feedMeControl);
 	stopTask(spinUpControl);
-	stopTask(fireControl);
+	stopTask(seymoreControl);
 	stopTask(calcVelocity);
 	stopTask(launcherMode);
-	stopTask(feedToTop);
 
 	initializeTasks();
 }
