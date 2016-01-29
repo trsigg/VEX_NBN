@@ -41,7 +41,6 @@
 
 bool flywheelRunning = false;
 bool velocityUpdated = false;
-bool continuousFire = false;
 float flywheelVelocity = 0;
 float targetVelocity = 0;
 int flywheelPower = 0;
@@ -149,7 +148,7 @@ task puncher() {
 }
 
 task flywheel() {
-	TVexJoysticks buttons[4] = {Btn7D, Btn7L, Btn7R, Btn7U}; //creating a pseudo-hash associating buttons with velocities and default motor powers
+	TVexJoysticks buttons[4] = {Btn7U, Btn7R, Btn7D, Btn7L}; //creating a pseudo-hash associating buttons with velocities and default motor powers
 	float velocities[4] = {3.91, 4.30, 5.03, 5.60};
 	int defaultPowers[4] = {40, 46, 63, 82};
 
@@ -204,9 +203,7 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 
 //begin task control region
 void resetFlywheelVars() {
-	flywheelRunning = false;
 	velocityUpdated = false;
-	continuousFire = false;
 	flywheelVelocity = 0;
 	targetVelocity = 0;
 	flywheelPower = 0;
