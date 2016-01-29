@@ -38,8 +38,6 @@ float targetVelocity = 0;
 int flywheelPower = 0;
 int targetPower = 0;
 int defaultPower = 0;
-bool pid = false;
-float pidPower = 0;
 
 //begin helper functions region
 int limit(int input, int min, int max) {
@@ -206,7 +204,6 @@ task main()
 
 	while (true)
 	{
-		pid = true;
 		prevError = targetVelocity - getFlywheelVelocity();
 		integral = 0;
 
@@ -227,7 +224,6 @@ task main()
 		}
 
 		//bang bang control
-		pid = false;
 		while (abs(targetVelocity - flywheelVelocity) > bangBangErrorMargin * targetVelocity) {
 			targetPower = ((targetVelocity > flywheelVelocity) ? (127) : ( 0));
 			EndTimeSlice();
