@@ -212,24 +212,28 @@ void resetFlywheelVars() {
 }
 
 task launcherMode() {
-	while (vexRT[switchLauncherModesBtn] == 0) { EndTimeSlice(); }
-	flywheelRunning = !flywheelRunning;
-	if (flywheelRunning) {
-		resetFlywheelVars();
-		stopTask(puncher);
-		startTask(flywheel);
-		startTask(flywheelStabilization);
-		startTask(spinUpControl);
-		startTask(seymoreControl);
-		startTask(calcVelocity);
-	}
-	else {
-		stopTask(flywheel);
-		stopTask(flywheelStabilization);
-		stopTask(spinUpControl);
-		stopTask(seymoreControl);
-		stopTask(calcVelocity);
-		startTask(puncher);
+	while (true) {
+		while (vexRT[switchLauncherModesBtn] == 0) { EndTimeSlice(); }
+		flywheelRunning = !flywheelRunning;
+		if (flywheelRunning) {
+			resetFlywheelVars();
+			stopTask(puncher);
+			startTask(flywheel);
+			startTask(flywheelStabilization);
+			startTask(spinUpControl);
+			startTask(seymoreControl);
+			startTask(calcVelocity);
+		}
+		else {
+			setLauncherPower(0);
+			stopTask(flywheel);
+			stopTask(flywheelStabilization);
+			stopTask(spinUpControl);
+			stopTask(seymoreControl);
+			stopTask(calcVelocity);
+			startTask(puncher);
+		}
+		while (vexRT[switchLauncherModesBtn] == 1) { EndTimeSlice(); }
 	}
 }
 
