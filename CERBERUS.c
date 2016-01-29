@@ -71,21 +71,6 @@ int maxPower()
 	}
 }
 
-void initializeTasks()
-{
-	if (flywheelRunning)
-	{
-		startTask(flywheel);
-		startTask(feedControl);
-		startTask(taskControl);
-	}
-	else
-	{
-		startTask(cataChooChoo);
-		startTask(taskControl);
-	}
-}
-
 //set functions region
 void setFeedPower(int power)
 {
@@ -113,7 +98,7 @@ task flywheel()
 	int prevError = flywheelTargetSpeed - /*velocity of flywheel motor*/;
 	int error;
 	int integral = 0;
-	
+
 	while (true)
 	{
 		while ((abs((flywheelTargetSpeed - /*velocity of flywheel motor*/) * gearRatio) < bangBangErrorMargin * flywheelTargetSpeed) //PID control
@@ -203,6 +188,21 @@ task taskControl()
 		}
 
 		wait1Msec(debounceTime);
+	}
+}
+
+void initializeTasks()
+{
+	if (flywheelRunning)
+	{
+		startTask(flywheel);
+		startTask(feedControl);
+		startTask(taskControl);
+	}
+	else
+	{
+		startTask(cataChooChoo);
+		startTask(taskControl);
 	}
 }
 
