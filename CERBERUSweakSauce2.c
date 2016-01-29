@@ -21,8 +21,7 @@
 
 #define maxAcc 30 //the maximum amount a motor's power value can be safely changed in .1 seconds
 #define fireErrorMargin .05 //percent error allowable in flywheel velocity for firing
-#define sampleTime 50 //number of milliseconds between sampling the flywheel velocity and control adjustments in flywheel task
-#define gearRatio 3 //gear ratio between flywheelEncoder and flywheel
+#define sampleTime 500 //number of milliseconds between sampling the flywheel velocity and control adjustments in flywheel task
 //PID constants
 #define kp 1 //TO TUNE
 #define ki 1 //TO TUNE
@@ -50,7 +49,7 @@ int targetPower = 0;
 int defaultPower = 0;
 
 //begin helper functions region
-int limit(int input, int max, int min) {
+int limit(int input, int min, int max) {
 	if (abs(input) <= max && abs(input) >= min) {
 		return input;
 	}	else {
@@ -77,7 +76,7 @@ task calcVelocity() {
 	while (true) {
 		SensorValue[flywheelEncoder] = 0;
 		wait1Msec(sampleTime);
-		flywheelVelocity = SensorValue[flywheelEncoder] * gearRatio / sampleTime;
+		flywheelVelocity = (float)(SensorValue[flywheelEncoder]) / (float)(sampleTime);
 		velocityUpdated = true;
 	}
 }
@@ -168,7 +167,12 @@ task flywheel() {
 }
 
 task flywheelStabilization() { //modulates motor powers to maintain constant flywheel velocity
-	float prevError;
+	while (true) {
+		targetPower = defaultPower;
+		EndTimeSlice();
+	}
+
+	/*float prevError;
 	float error;
 	float integral;
 
@@ -198,7 +202,7 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 		while (abs(flywheelVelocity - flywheelVelocity * gearRatio) > bangBangErrorMargin * flywheelVelocity) { EndTimeSlice(); }
 
 		setLauncherPower(defaultPower);
-	}
+	}*/
 }
 //end user input region
 
