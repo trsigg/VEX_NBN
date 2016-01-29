@@ -140,14 +140,14 @@ task puncher() {
 	while (true)
 	{
 		while (vexRT[punchBtn] == 0) { EndTimeSlice(); }
-		setLauncherPower(127);
+		setLauncherPower(80);
 		while (vexRT[punchBtn] == 1) { EndTimeSlice(); }
 		setLauncherPower(0);
 	}
 }
 
 task flywheel() {
-	TVexJoysticks buttons[5] = {Btn8D, Btn7D, Btn7L, Btn7R, Btn7U}; //creating a pseudo-hash associating buttons with velocities and default motor powers
+	TVexJoysticks buttons[5] = {Btn8D, Btn7U, Btn7R, Btn7D, Btn7L}; //creating a pseudo-hash associating buttons with velocities and default motor powers
 	float velocities[5] = {0, 3.91, 4.30, 5.03, 5.60};
 	int defaultPowers[5] = {0, 40, 46, 63, 82};
 
@@ -280,7 +280,7 @@ task usercontrol() {
 	{
 		while (vexRT[emergencyStopBtn] == 0)
 		{
-			setDrivePower(vexRT[Ch2], vexRT[Ch3]);
+			setDrivePower(sgn(vexRT[Ch2]) * vexRT[Ch2] * vexRT[Ch2] / 127, sgn(vexRT[Ch3]) * vexRT[Ch3] * vexRT[Ch3] / 127);
 			EndTimeSlice();
 		}
 
