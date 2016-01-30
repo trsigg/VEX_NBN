@@ -24,7 +24,7 @@
 #define upOneBtn Btn8U
 #define downOneBtn Btn8D
 
-#define sampleTime 500
+#define sampleTime 50
 
 float velocity = 0.0;
 float velocities[5] = {0, 0, 0, 0, 0};

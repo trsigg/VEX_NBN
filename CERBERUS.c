@@ -116,7 +116,7 @@ task feedMeControl() {
 }
 
 task seymoreControl() {
-	bool automaticStop = true;
+	bool automaticStop = false;
 
 	while (true) {
 		while (vexRT[seymoreInBtn] == 0 && vexRT[seymoreOutBtn] == 0 && vexRT[seymoreManualOverrideBtn] == 0) { EndTimeSlice(); }
@@ -148,8 +148,8 @@ task puncher() {
 
 task flywheel() {
 	TVexJoysticks buttons[5] = {Btn8D, Btn7U, Btn7R, Btn7D, Btn7L}; //creating a pseudo-hash associating buttons with velocities and default motor powers
-	float velocities[5] = {0, 3.91, 4.30, 5.03, 5.60};
-	int defaultPowers[5] = {0, 40, 46, 63, 82};
+	float velocities[5] = {0.0, 4.00, 4.31, 5.20, 5.65};
+	int defaultPowers[5] = {0, 39, 44, 65, 81};
 
 	while (true)
 	{
