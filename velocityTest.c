@@ -72,6 +72,15 @@ void spinUp()
 	}
 }
 
+void rampDrive(int targetPower, int rampTime) {
+	for (int power = (int)(targetPower * 100/ rampTime); power < targetPower; power += (int)(targetPower * 100/ rampTime)) {
+		setDrivePower(power, power);
+		wait1Msec(100);
+	}
+
+	setDrivePower(targetPower, targetPower);
+}
+
 task feedControl()
 {
 	while (true)
@@ -107,6 +116,10 @@ task calcVelocity()
 
 task main()
 {
+	rampDrive(127, 1500);
+	wait1Msec(2000);
+	setDrivePower(0, 0);
+
 	int power = 90;
 	spinUp();
 	startTask(feedControl);

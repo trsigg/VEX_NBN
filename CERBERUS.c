@@ -270,7 +270,18 @@ void emergencyStop() {
 void pre_auton() { bStopTasksBetweenModes = true; }
 
 task autonomous() {
-	AutonomousCodePlaceholderForTesting();
+	flywheelRunning = false;
+	setLauncherPower(80);
+	wait1Msec(1250);
+	setLauncherPower(0);
+	flywheelRunning = true;
+	/*initializeTasks();
+
+	targetVelocity =
+
+	setDrivePower(127, 127);
+	wait1Msec(1500);
+	setDrivePower(0, 0);*/
 }
 
 task usercontrol() {
