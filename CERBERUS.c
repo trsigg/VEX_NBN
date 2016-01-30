@@ -153,7 +153,7 @@ task puncherSpeeds() {
 
 	while (true)
 	{
-		for (int i = 0; i < 5; i++)
+		for (int i = 0; i < 4; i++)
 		{
 			if (vexRT[buttons[i]] == 1)
 			{
