@@ -271,17 +271,20 @@ void pre_auton() { bStopTasksBetweenModes = true; }
 
 task autonomous() {
 	flywheelRunning = false;
-	setLauncherPower(80);
-	wait1Msec(1250);
+	setLauncherPower(127);
+	wait1Msec(1000);
 	setLauncherPower(0);
 	flywheelRunning = true;
-	/*initializeTasks();
+	initializeTasks();
+	targetVelocity = 4.00;
+	defaultPower = 39;
 
-	targetVelocity =
-
-	setDrivePower(127, 127);
-	wait1Msec(1500);
-	setDrivePower(0, 0);*/
+	motor[feedMe] = 127;
+	setDrivePower(127, 85);
+	wait1Msec(3000);
+	setDrivePower(0, 0);
+	motor[seymore] = 127;
+	while (true) { EndTimeSlice(); }
 }
 
 task usercontrol() {
