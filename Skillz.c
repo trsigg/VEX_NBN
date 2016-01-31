@@ -38,13 +38,14 @@
 #define switchLauncherModesBtn Btn8L
 #define emergencyStopBtn Btn8R
 
-bool flywheelRunning = true;
+bool flywheelRunning = false;
 bool velocityUpdated = false;
 float flywheelVelocity = 0;
 float targetVelocity = 0;
 int flywheelPower = 0;
 int targetPower = 0;
 int defaultPower = 0;
+int puncherPower = 80;
 
 //begin helper functions region
 int limit(int input, int min, int max) {
@@ -140,9 +141,26 @@ task puncher() {
 	while (true)
 	{
 		while (vexRT[punchBtn] == 0) { EndTimeSlice(); }
-		setLauncherPower(80);
+		setLauncherPower(puncherPower);
 		while (vexRT[punchBtn] == 1) { EndTimeSlice(); }
 		setLauncherPower(0);
+	}
+}
+
+task puncherSpeeds() {
+	TVexJoysticks buttons[4] = {Btn7U, Btn7R, Btn7D, Btn7L}; //creating a pseudo-hash associating buttons with motor powers
+	int powers[4] = {60, 80, 100, 127};
+
+	while (true)
+	{
+		for (int i = 0; i < 4; i++)
+		{
+			if (vexRT[buttons[i]] == 1)
+			{
+				puncherPower = powers[i];
+			}
+			EndTimeSlice();
+		}
 	}
 }
 
@@ -232,6 +250,7 @@ task launcherMode() {
 			stopTask(seymoreControl);
 			stopTask(calcVelocity);
 			startTask(puncher);
+			startTask(puncherSpeeds);
 		}
 		while (vexRT[switchLauncherModesBtn] == 1) { EndTimeSlice(); }
 	}
@@ -248,6 +267,7 @@ void initializeTasks() {
 	}
 	else {
 		startTask(puncher);
+		startTask(puncherSpeeds);
 	}
 	startTask(launcherMode);
 	startTask(feedMeControl);
