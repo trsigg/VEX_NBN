@@ -188,7 +188,7 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 		prevError = targetVelocity - flywheelVelocity;
 		integral = 0;
 
-		while (abs(targetVelocity - flywheelVelocity) < bangBangErrorMargin * targetVelocity) //PID control
+		while (abs(targetVelocity - flywheelVelocity) < bangBangErrorMargin * targetVelocity && targetVelocity > 0) //PID control
 		{
 			wait1Msec(sampleTime);
 			while (!velocityUpdated) { EndTimeSlice(); }
@@ -205,12 +205,13 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 		}
 
 		//bang bang control
-		while (abs(targetVelocity - flywheelVelocity) > bangBangErrorMargin * targetVelocity) {
+		while (abs(targetVelocity - flywheelVelocity) > bangBangErrorMargin * targetVelocity && targetVelocity > 0) {
 			targetPower = ((targetVelocity > flywheelVelocity) ? (127) : ( 0));
 			EndTimeSlice();
 		}
 
-		setLauncherPower(defaultPower);
+		targetPower = defaultPower;
+		while (targetVelocity == 0) { EndTimeSlice(); } //pauses while
 	}
 }
 //end user input region
