@@ -22,11 +22,11 @@
 #define maxAcc 30 //the maximum amount a motor's power value can be safely changed in .1 seconds
 #define sampleTime 50. //number of milliseconds between sampling the flywheel velocity and control adjustments in flywheel task
 //PID constants
-#define kp 6. //TO TUNE
-#define ki 0.2 //TO TUNE
-#define kd 3. //TO TUNE
+#define kp 20. //TO TUNE
+#define ki 0.1 //TO TUNE
+#define kd 4. //TO TUNE
 #define firingErrorMargin .02 //TO TUNE //percent error allowable in flywheel velocity for firing
-#define bangBangErrorMargin .05 //TO TUNE
+#define bangBangErrorMargin .03 //TO TUNE
 #define integralMargin .02 //TO TUNE
 
 #define seymoreInBtn Btn5U
@@ -46,6 +46,11 @@ int flywheelPower = 0;
 int targetPower = 0;
 int defaultPower = 0;
 int puncherPower = 80;
+
+float debug;
+float errorDebug;
+int bangBangCount = 0;
+float bangBangPerSec = 0;
 
 //begin helper functions region
 int limit(int input, int min, int max) {
@@ -161,8 +166,8 @@ task puncherSpeeds() {
 
 task flywheel() {
 	TVexJoysticks buttons[5] = {Btn8D, Btn7U, Btn7R, Btn7D, Btn7L}; //creating a pseudo-hash associating buttons with velocities and default motor powers
-	float velocities[5] = {0.0, 3.55, 3.77, 4.23, 4.38};
-	int defaultPowers[5] = {0, 52, 62, 79, 109};
+	float velocities[5] = {0.0, 3.56, 3.77, 4.21, 4.41};
+	int defaultPowers[5] = {0, 46, 51, 65, 74};
 
 	while (true)
 	{
@@ -179,6 +184,7 @@ task flywheel() {
 }
 
 task flywheelStabilization() { //modulates motor powers to maintain constant flywheel velocity
+	clearTimer(T1);
 	float prevError;
 	float error;
 	float integral;
@@ -193,6 +199,7 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 			wait1Msec(sampleTime);
 			while (!velocityUpdated) { EndTimeSlice(); }
 			error = (targetVelocity - flywheelVelocity);
+			errorDebug = error;
 			velocityUpdated = false;
 
 			if (abs(error) < integralMargin * flywheelVelocity)
@@ -202,9 +209,12 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 
 			targetPower = defaultPower + kp * error + ki * integral + kd * (error - prevError) / sampleTime;
 			prevError = error;
+			debug = targetPower - defaultPower;
 		}
 
 		//bang bang control
+		bangBangCount += 1;
+		bangBangPerSec = (float)((float)bangBangCount * 1000) / (float)(time1(T1) + .1);
 		while (abs(targetVelocity - flywheelVelocity) > bangBangErrorMargin * flywheelVelocity && targetVelocity > 0) {
 			targetPower = ((targetVelocity > flywheelVelocity) ? (127) : ( 0));
 			EndTimeSlice();

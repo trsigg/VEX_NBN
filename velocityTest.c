@@ -115,9 +115,9 @@ task calcVelocity()
 
 task main()
 {
-	rampDrive(127, 1500);
+	/*rampDrive(127, 1500);
 	wait1Msec(2000);
-	setDrivePower(0, 0);
+	setDrivePower(0, 0);*/
 
 	int power = 90;
 	spinUp();
