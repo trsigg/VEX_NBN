@@ -23,11 +23,11 @@
 #define sampleTime 50. //number of milliseconds between sampling the flywheel velocity and control adjustments in flywheel task
 //PID constants
 #define kp 6. //TO TUNE
-#define ki 2. //TO TUNE
+#define ki 0.2 //TO TUNE
 #define kd 3. //TO TUNE
 #define firingErrorMargin .02 //TO TUNE //percent error allowable in flywheel velocity for firing
-#define bangBangErrorMargin .18 //TO TUNE
-#define integralMargin .10 //TO TUNE
+#define bangBangErrorMargin .05 //TO TUNE
+#define integralMargin .02 //TO TUNE
 
 #define seymoreInBtn Btn5U
 #define seymoreOutBtn Btn5D
@@ -162,7 +162,7 @@ task puncherSpeeds() {
 task flywheel() {
 	TVexJoysticks buttons[5] = {Btn8D, Btn7U, Btn7R, Btn7D, Btn7L}; //creating a pseudo-hash associating buttons with velocities and default motor powers
 	float velocities[5] = {0.0, 3.55, 3.77, 4.23, 4.38};
-	int defaultPowers[5] = {0, 52, 62, 79, 111};
+	int defaultPowers[5] = {0, 52, 62, 79, 109};
 
 	while (true)
 	{
@@ -188,16 +188,16 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 		prevError = targetVelocity - flywheelVelocity;
 		integral = 0;
 
-		while (abs(targetVelocity - flywheelVelocity) < bangBangErrorMargin && targetVelocity > 0) //PID control
+		while (abs(targetVelocity - flywheelVelocity) < bangBangErrorMargin * flywheelVelocity && targetVelocity > 0) //PID control
 		{
 			wait1Msec(sampleTime);
 			while (!velocityUpdated) { EndTimeSlice(); }
 			error = (targetVelocity - flywheelVelocity);
 			velocityUpdated = false;
 
-			if (abs(error) < integralMargin)
+			if (abs(error) < integralMargin * flywheelVelocity)
 			{
-				integral += error;
+				integral += (prevError + error) * sampleTime / 2;
 			}
 
 			targetPower = defaultPower + kp * error + ki * integral + kd * (error - prevError) / sampleTime;
@@ -205,7 +205,7 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 		}
 
 		//bang bang control
-		while (abs(targetVelocity - flywheelVelocity) > bangBangErrorMargin && targetVelocity > 0) {
+		while (abs(targetVelocity - flywheelVelocity) > bangBangErrorMargin * flywheelVelocity && targetVelocity > 0) {
 			targetPower = ((targetVelocity > flywheelVelocity) ? (127) : ( 0));
 			EndTimeSlice();
 		}
