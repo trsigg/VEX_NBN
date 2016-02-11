@@ -1,8 +1,5 @@
 #pragma config(Sensor, dgtl1,  flywheelEncoder, sensorQuadEncoder)
-#pragma config(Sensor, dgtl3,  leftEncoder,    sensorQuadEncoder)
-#pragma config(Sensor, dgtl5,  rightEncoder,   sensorQuadEncoder)
-#pragma config(Sensor, dgtl7,  feedSwitch,     sensorDigitalIn)
-#pragma config(Sensor, dgtl8,  flywheelSwitch, sensorDigitalIn)
+#pragma config(Sensor, dgtl3,  feedSwitch,     sensorDigitalIn)
 #pragma config(Motor,  port1,           ce,            tmotorVex393_HBridge, openLoop, reversed)
 #pragma config(Motor,  port2,           rb,            tmotorVex393_MC29, openLoop, reversed)
 #pragma config(Motor,  port3,           er,            tmotorVex393_MC29, openLoop, reversed)
@@ -32,7 +29,7 @@
 #define bangBangErrorMargin .03 //TO TUNE
 #define integralMargin .02 //TO TUNE
 
-#define fireBtn Btn5U
+#define seymoreInBtn Btn5U
 #define seymoreOutBtn Btn5D
 #define seymoreManualOverrideBtn Btn8U
 #define punchBtn Btn5U
@@ -121,7 +118,7 @@ task feedMeControl() {
 
 task seymoreControl() {
 	while (true) {
-		while (SensorValue[feedSwitch] == 1 && vexRT[fireBtn] == 0 && vexRT[seymoreOutBtn] == 0) {
+		while (SensorValue[feedSwitch] == 1 && vexRT[fireBtn] == 0 && vexRT[seymoreManualOverrideBtn] == 0) {
 			if (vexRT[fireBtn] == 1) { //firing
 				stopTask(feedMeControl);
 				motor[feedMe] = 127;
@@ -133,14 +130,14 @@ task seymoreControl() {
 				motor[seymore] = 0;
 				startTask(feedMeControl);
 			}
-			else if (vexRT[seymoreOutBtn] == 1) { //feed out
-				motor[seymore] = -127;
-				while (vexRT[seymoreOutBtn] == 1) { EndTimeSlice(); }
+			else if (vexRT[manualOverrideBtn] == 1) { //manual override
+				motor[seymore] = 127;
+				while (vexRT[manualOverrideBtn] == 1) { EndTimeSlice(); }
 				motor[seymore] = 0;
 			}
-			else { //bottomFeedSwitch is pressed
+			else if { //bottomFeedSwitch is pressed
 				motor[seymore] = (SensorValue[flywheelSwitch] == 1 ? 127 : 0);
-				while (SensorValue[flywheelSwitch] == 1 && SensorValue[feedSwitch] == 1 && vexRT[fireBtn] == 0 && vexRT[seymoreOutBtn] == 0) { EndTimeSlice(); }
+				while (SensorValue[flywheelSwitch] == 1 && SensorValue[feedSwitch] == 1 && vexRT[fireBtn] == 0 && vexRT[seymoreManualOverrideBtn] == 0) { EndTimeSlice(); }
 				motor[seymore] = 0;
 			}
 		}
