@@ -176,8 +176,8 @@ task puncherSpeeds() {
 
 task flywheel() {
 	TVexJoysticks buttons[5] = {Btn8D, Btn7U, Btn7R, Btn7D, Btn7L}; //creating a pseudo-hash associating buttons with velocities and default motor powers
-	float velocities[5] = {0.0, 3.56, 3.77, 4.21, 4.51};
-	int defaultPowers[5] = {0, 46, 51, 65, 80};
+	float velocities[5] = {0.0, 3.56, 3.77, 4.21, 4.41};
+	int defaultPowers[5] = {0, 46, 51, 65, 74};
 
 	while (true)
 	{
