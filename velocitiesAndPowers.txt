@@ -1,0 +1,2 @@
+float velocities[5] = {0.0, 3.56, 3.77, 4.21, 4.51};
+	int defaultPowers[5] = {0, 46, 51, 65, 80};
