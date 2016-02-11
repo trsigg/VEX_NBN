@@ -117,30 +117,23 @@ task feedMeControl() {
 }
 
 task seymoreControl() {
+	bool automaticStop = false;
+
 	while (true) {
-		while (SensorValue[feedSwitch] == 1 && vexRT[fireBtn] == 0 && vexRT[seymoreManualOverrideBtn] == 0) {
-			if (vexRT[fireBtn] == 1) { //firing
-				stopTask(feedMeControl);
-				motor[feedMe] = 127;
-				while (vexRT[fireBtn] == 1) {
-					motor[seymore] = (abs(flywheelVelocity - targetVelocity) < firingErrorMargin * targetVelocity || SensorValue[flywheelSwitch] == 1 ? 127 : 0);
-					EndTimeSlice();
-				}
-				motor[feedMe] = 0;
-				motor[seymore] = 0;
-				startTask(feedMeControl);
-			}
-			else if (vexRT[manualOverrideBtn] == 1) { //manual override
-				motor[seymore] = 127;
-				while (vexRT[manualOverrideBtn] == 1) { EndTimeSlice(); }
-				motor[seymore] = 0;
-			}
-			else if { //bottomFeedSwitch is pressed
-				motor[seymore] = (SensorValue[flywheelSwitch] == 1 ? 127 : 0);
-				while (SensorValue[flywheelSwitch] == 1 && SensorValue[feedSwitch] == 1 && vexRT[fireBtn] == 0 && vexRT[seymoreManualOverrideBtn] == 0) { EndTimeSlice(); }
-				motor[seymore] = 0;
-			}
+		while (vexRT[seymoreInBtn] == 0 && vexRT[seymoreOutBtn] == 0 && vexRT[seymoreManualOverrideBtn] == 0) { EndTimeSlice(); }
+		if (vexRT[seymoreInBtn] == 1) {
+			motor[seymore] = (/*SensorValue[feedSwitch] == 1 ||*/ abs(targetVelocity - flywheelVelocity) < firingErrorMargin * targetVelocity || !automaticStop ? 127 : 0);
+			while (vexRT[seymoreInBtn] == 1 && (/*SensorValue[feedSwitch] == 1  ||*/ abs(targetVelocity - flywheelVelocity) < firingErrorMargin * targetVelocity || !automaticStop)) { EndTimeSlice(); }
 		}
+		else if (vexRT[seymoreOutBtn] == 1) {
+			motor[seymore] = -127;
+			while (vexRT[seymoreOutBtn] == 1) { EndTimeSlice(); }
+		}
+		else {
+			automaticStop = !automaticStop;
+			while (vexRT[seymoreManualOverrideBtn] == 1) { EndTimeSlice(); }
+		}
+		motor[seymore] = 0;
 	}
 }
 
