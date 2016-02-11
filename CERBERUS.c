@@ -28,7 +28,7 @@
 #define kp 20. //TO TUNE
 #define ki 0.1 //TO TUNE
 #define kd 4. //TO TUNE
-#define firingErrorMargin .02 //TO TUNE //percent error allowable in flywheel velocity for firing
+#define firingErrorMargin .015 //TO TUNE //percent error allowable in flywheel velocity for firing
 #define bangBangErrorMargin .03 //TO TUNE
 #define integralMargin .02 //TO TUNE
 
@@ -121,28 +121,28 @@ task feedMeControl() {
 
 task seymoreControl() {
 	while (true) {
-		while (SensorValue[feedSwitch] == 1 && vexRT[fireBtn] == 0 && vexRT[seymoreOutBtn] == 0) {
-			if (vexRT[fireBtn] == 1) { //firing
-				stopTask(feedMeControl);
-				motor[feedMe] = 127;
-				while (vexRT[fireBtn] == 1) {
-					motor[seymore] = (abs(flywheelVelocity - targetVelocity) < firingErrorMargin * targetVelocity || SensorValue[flywheelSwitch] == 1 ? 127 : 0);
-					EndTimeSlice();
-				}
-				motor[feedMe] = 0;
-				motor[seymore] = 0;
-				startTask(feedMeControl);
+		while (SensorValue[feedSwitch] == 1 && vexRT[fireBtn] == 0 && vexRT[seymoreOutBtn] == 0) { EndTimeSlice(); }
+		if (vexRT[fireBtn] == 1) { //firing
+			stopTask(feedMeControl);
+			motor[feedMe] = 127;
+			while (vexRT[fireBtn] == 1) {
+				motor[seymore] = (abs(flywheelVelocity - targetVelocity) < firingErrorMargin * targetVelocity || SensorValue[flywheelSwitch] == 1 ? 127 : 0);
+				EndTimeSlice();
 			}
-			else if (vexRT[seymoreOutBtn] == 1) { //feed out
-				motor[seymore] = -127;
-				while (vexRT[seymoreOutBtn] == 1) { EndTimeSlice(); }
-				motor[seymore] = 0;
-			}
-			else { //bottomFeedSwitch is pressed
-				motor[seymore] = (SensorValue[flywheelSwitch] == 1 ? 127 : 0);
-				while (SensorValue[flywheelSwitch] == 1 && SensorValue[feedSwitch] == 1 && vexRT[fireBtn] == 0 && vexRT[seymoreOutBtn] == 0) { EndTimeSlice(); }
-				motor[seymore] = 0;
-			}
+			motor[feedMe] = 0;
+			motor[seymore] = 0;
+			startTask(feedMeControl);
+		}
+		else if (vexRT[seymoreOutBtn] == 1) { //feed out
+			motor[seymore] = -127;
+			while (vexRT[seymoreOutBtn] == 1) { EndTimeSlice(); }
+			motor[seymore] = 0;
+		}
+		else { //bottomFeedSwitch is pressed
+			motor[seymore] = (SensorValue[flywheelSwitch] == 1 ? 127 : 0);
+			while (SensorValue[flywheelSwitch] == 1 && SensorValue[feedSwitch] == 0 && vexRT[fireBtn] == 0 && vexRT[seymoreOutBtn] == 0) { EndTimeSlice(); }
+			wait1Msec(SensorValue[feedSwitch] == 1 ? 500 : 0);
+			motor[seymore] = 0;
 		}
 	}
 }
