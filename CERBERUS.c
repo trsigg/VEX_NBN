@@ -314,9 +314,12 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 }
 
 task lift() {
+	SensorValue[solenoidOne] = 0;
+	SensorValue[solenoidTwo] = 0;
 	while (true) {
 		while (vexRT[liftBtn] == 0) { EndTimeSlice(); }
-		SensorValue[solenoidOne] = 1;
+		SensorValue[solenoidOne] = 1 - SensorValue[solenoidOne];
+		SensorValue[solenoidTwo] = 1 - SensorValue[solenoidTwo];
 		while (vexRT[liftBtn] == 1) { EndTimeSlice(); }
 	}
 }
