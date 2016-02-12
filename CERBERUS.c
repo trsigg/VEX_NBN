@@ -29,7 +29,7 @@
 #define kp 20. //TO TUNE
 #define ki 0.1 //TO TUNE
 #define kd 4. //TO TUNE
-#define firingErrorMargin .015 //TO TUNE //percent error allowable in flywheel velocity for firing
+#define firingErrorMargin .03 //TO TUNE //percent error allowable in flywheel velocity for firing
 #define bangBangErrorMargin .03 //TO TUNE
 #define integralMargin .02 //TO TUNE
 
@@ -183,6 +183,7 @@ task fire() {
 		while (SensorValue[flywheelSwitch] == 1 || abs(targetVelocity - flywheelVelocity) > firingErrorMargin * targetVelocity) { EndTimeSlice(); }
 		motor[seymore] = 0;
 		while(!(SensorValue[flywheelSwitch] == 1 || abs(targetVelocity - flywheelVelocity) > firingErrorMargin * targetVelocity)) { EndTimeSlice(); }
+		wait1Msec(500);
 		motor[seymore] = 127;
 	}
 }
@@ -205,7 +206,7 @@ task feedMeControl() {
 }
 
 task seymoreControl() {
-	bool automaticStop = true;
+	bool automaticStop = false;
 
 	while (true) {
 		while (vexRT[fireBtn] == 0 && vexRT[seymoreOutBtn] == 0 && vexRT[seymoreManualOverrideBtn] == 0) { EndTimeSlice(); }
@@ -237,7 +238,7 @@ task puncher() {
 
 task puncherSpeeds() {
 	TVexJoysticks buttons[4] = {Btn7U, Btn7R, Btn7D, Btn7L}; //creating a pseudo-hash associating buttons with motor powers
-	int powers[4] = {80, 90, 110, 127};
+	int powers[4] = {80, 85, 90, 110};
 
 	while (true)
 	{
@@ -254,8 +255,8 @@ task puncherSpeeds() {
 
 task flywheel() {
 	TVexJoysticks buttons[5] = {Btn8D, Btn7U, Btn7R, Btn7D, Btn7L}; //creating a pseudo-hash associating buttons with velocities and default motor powers
-	float velocities[5] = {0.0, 3.56, 3.77, 4.21, 4.41};
-	int defaultPowers[5] = {0, 46, 51, 65, 74};
+	float velocities[5] = {0.0, 4.11, 4.33, 4.67, 4.82};
+	int defaultPowers[5] = {0, 56, 65, 78, 108};
 
 	while (true)
 	{
@@ -408,27 +409,27 @@ task autonomous() {
 	//start flywheel
 	flywheelRunning = true;
 	initializeTasks();
-	targetVelocity = 3.77;
-	defaultPower = 51;
+	targetVelocity = 3.61;
+	defaultPower = 45;
 
 	driveStraight(20, 1, -1, 50, 125); //turn to face first stack
 	motor[feedMe] = 127;
 	wait1Msec(125); //prevent breaker overload
-	driveStraight(675, 1, 1, 100, 250); //pick up first stack
+	driveStraight(720, 1, 1, 100, 250); //pick up first stack
 	driveStraight(25, -1, 1, 50, 250); //turn toward net
 	//drive toward net
 	driveStraight(900, 1, 1, 100, 500, true);
 	while (driveStraightRunning) { EndTimeSlice(); }
 	//fire first stack
 	startTask(fire);
-	wait1Msec(3000);
+	wait1Msec(3500);
 	stopTask(fire);
 	motor[seymore] = 0;
-	//change to first range
-	targetVelocity = 3.56;
-	defaultPower = 46;
+	/*//change to first range
+	targetVelocity = 4.11;
+	defaultPower = 50;*/
 	//drive over second stack to bar
-	driveStraight(900, 1, 1, 100, 250);
+	driveStraight(1100, 1, 1, 100, 500);
 	//aim for second stack
 	driveStraight(400, -1, -1, 100, 0, true);
 	while (driveStraightRunning) { EndTimeSlice(); }
