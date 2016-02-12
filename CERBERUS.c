@@ -1,7 +1,9 @@
 #pragma config(Sensor, dgtl1,  flywheelEncoder, sensorQuadEncoder)
 #pragma config(Sensor, dgtl3,  leftEncoder,    sensorQuadEncoder)
 #pragma config(Sensor, dgtl5,  rightEncoder,   sensorQuadEncoder)
-#pragma config(Sensor, dgtl8,  flywheelSwitch, sensorDigitalIn)
+#pragma config(Sensor, dgtl7,  flywheelSwitch, sensorDigitalIn)
+#pragma config(Sensor, dgtl8,  solenoidOne,    sensorDigitalOut)
+#pragma config(Sensor, dgtl9,  solenoidTwo,    sensorDigitalOut)
 #pragma config(Motor,  port1,           ce,            tmotorVex393_HBridge, openLoop, reversed)
 #pragma config(Motor,  port2,           rb,            tmotorVex393_MC29, openLoop, reversed)
 #pragma config(Motor,  port3,           er,            tmotorVex393_MC29, openLoop, reversed)
@@ -38,7 +40,7 @@
 #define feedInBtn Btn6U
 #define feedOutBtn Btn6D
 #define switchLauncherModesBtn Btn8L
-#define emergencyStopBtn Btn8R
+#define liftBtn Btn8R
 
 bool flywheelRunning = true;
 bool velocityUpdated = false;
@@ -310,6 +312,14 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 		while (targetVelocity == 0) { EndTimeSlice(); } //pauses while
 	}
 }
+
+task lift() {
+	while (true) {
+		while (vexRT[liftBtn] == 0) { EndTimeSlice(); }
+		SensorValue[solenoidOne] = 1;
+		while (vexRT[liftBtn] == 1) { EndTimeSlice(); }
+	}
+}
 //end user input region
 
 //begin task control region
@@ -364,6 +374,7 @@ void initializeTasks() {
 	}
 	startTask(launcherMode);
 	startTask(feedMeControl);
+	startTask(lift);
 }
 
 void emergencyStop() {
@@ -426,12 +437,12 @@ task usercontrol() {
 
 	while (true)
 	{
-		while (vexRT[emergencyStopBtn] == 0)
+		while (true)
 		{
 			setDrivePower(sgn(vexRT[Ch2]) * vexRT[Ch2] * vexRT[Ch2] / 127, sgn(vexRT[Ch3]) * vexRT[Ch3] * vexRT[Ch3] / 127);
 			EndTimeSlice();
 		}
 
-		emergencyStop();
+		emergencyStop(); //reassign emstop button
 	}
 }
