@@ -29,7 +29,7 @@
 #define kp 20. //TO TUNE
 #define ki 0.1 //TO TUNE
 #define kd 4. //TO TUNE
-#define firingErrorMargin .03 //TO TUNE //percent error allowable in flywheel velocity for firing
+#define firingErrorMargin .02 //TO TUNE //percent error allowable in flywheel velocity for firing
 #define bangBangErrorMargin .03 //TO TUNE
 #define integralMargin .02 //TO TUNE
 
@@ -51,7 +51,7 @@ int targetPower = 0;
 int defaultPower = 0;
 int puncherPower = 80;
 bool driveStraightRunning = false;
-int clicks, rightDirection, leftDirection, drivePower, delayAtEnd;
+int clicks, rightDirection, leftDirection, drivePower, delayAtEnd, timeout;
 
 float debug;
 float errorDebug;
@@ -111,19 +111,20 @@ task driveStraightTask()
 {
 	driveStraightRunning = true;
 
-	int coeff = 50;
+	int coeff = 5;
   int totalClicks = 0;
-  int slavePower = drivePower - 5;
+  int slavePower = drivePower;
   int error = 0;
 
   SensorValue[leftEncoder] = 0;
   SensorValue[rightEncoder] = 0;
+  clearTimer(T1);
 
-  while(abs(totalClicks) < clicks)
+  while(abs(totalClicks) < clicks && time1(T1) < timeout)
   {
     setDrivePower(drivePower * leftDirection, slavePower * rightDirection);
 
-    error = SensorValue[leftEncoder] - SensorValue[rightEncoder];
+    error = -SensorValue[leftEncoder] - SensorValue[rightEncoder];
 
     slavePower += error / coeff;
 
@@ -138,29 +139,31 @@ task driveStraightTask()
   driveStraightRunning = false;
 }
 
-void driveStraight(int _clicks_, int _leftDirection_, int _rightDirection_, int _drivePower_, int _delayAtEnd_=0, bool startAsTask=false) {
+void driveStraight(int _clicks_, int _leftDirection_, int _rightDirection_, int _drivePower_, int _delayAtEnd_=0, bool startAsTask=false, int _timeout_=2500) {
 	clicks = _clicks_;
 	rightDirection = _rightDirection_;
 	leftDirection = _leftDirection_;
 	drivePower = _drivePower_;
 	delayAtEnd = _delayAtEnd_;
+	timeout = _timeout_;
 	if (startAsTask) {
 		startTask(driveStraightTask);
 	}
 	else { //runs as function
-		int coeff = 50;
+		int coeff = 5;
 	  int totalClicks = 0;
-	  int slavePower = drivePower - 5;
+	  int slavePower = drivePower;
 	  int error = 0;
 
 	  SensorValue[leftEncoder] = 0;
 	  SensorValue[rightEncoder] = 0;
+	  clearTimer(T1);
 
-	  while(abs(totalClicks) < clicks)
+	  while(abs(totalClicks) < clicks  && time1(T1) < timeout)
 	  {
 	    setDrivePower(drivePower * leftDirection, slavePower * rightDirection);
 
-	    error = SensorValue[leftEncoder] - SensorValue[rightEncoder];
+	    error = -SensorValue[leftEncoder] - SensorValue[rightEncoder];
 
 	    slavePower += error / coeff;
 
@@ -180,10 +183,9 @@ task fire() {
 	motor[feedMe] = 127;
 	motor[seymore] = SensorValue[flywheelSwitch] == 1 || abs(targetVelocity - flywheelVelocity) > firingErrorMargin * targetVelocity ? 127 : 0;
 	while (/*shotsFired < shotsToFire*/true) {
-		while (SensorValue[flywheelSwitch] == 1 || abs(targetVelocity - flywheelVelocity) > firingErrorMargin * targetVelocity) { EndTimeSlice(); }
+		while (SensorValue[flywheelSwitch] == 1 || abs(targetVelocity - flywheelVelocity) < firingErrorMargin * targetVelocity) { EndTimeSlice(); }
 		motor[seymore] = 0;
-		while(!(SensorValue[flywheelSwitch] == 1 || abs(targetVelocity - flywheelVelocity) > firingErrorMargin * targetVelocity)) { EndTimeSlice(); }
-		wait1Msec(500);
+		while(!(SensorValue[flywheelSwitch] == 1 || abs(targetVelocity - flywheelVelocity) < firingErrorMargin * targetVelocity)) { EndTimeSlice(); }
 		motor[seymore] = 127;
 	}
 }
@@ -255,8 +257,8 @@ task puncherSpeeds() {
 
 task flywheel() {
 	TVexJoysticks buttons[5] = {Btn8D, Btn7U, Btn7R, Btn7D, Btn7L}; //creating a pseudo-hash associating buttons with velocities and default motor powers
-	float velocities[5] = {0.0, 4.11, 4.33, 4.67, 4.82};
-	int defaultPowers[5] = {0, 56, 65, 78, 108};
+	float velocities[5] = {0.0, 3.61, 4.33, 4.67, 4.82};
+	int defaultPowers[5] = {0, 45, 65, 78, 108};
 
 	while (true)
 	{
@@ -406,6 +408,7 @@ task autonomous() {
 	setLauncherPower(127);
 	wait1Msec(1000);
 	setLauncherPower(0);
+	wait1Msec(2000);
 	//start flywheel
 	flywheelRunning = true;
 	initializeTasks();
@@ -415,31 +418,34 @@ task autonomous() {
 	driveStraight(20, 1, -1, 50, 125); //turn to face first stack
 	motor[feedMe] = 127;
 	wait1Msec(125); //prevent breaker overload
-	driveStraight(720, 1, 1, 100, 250); //pick up first stack
-	driveStraight(25, -1, 1, 50, 250); //turn toward net
+	driveStraight(800, 1, 1, 100, 250); //pick up first stack
+	driveStraight(8, -1, 1, 50, 250); //turn toward net
 	//drive toward net
 	driveStraight(900, 1, 1, 100, 500, true);
 	while (driveStraightRunning) { EndTimeSlice(); }
 	//fire first stack
 	startTask(fire);
-	wait1Msec(3500);
+	//motor[seymore] = 127;
+	wait1Msec(4000);
 	stopTask(fire);
 	motor[seymore] = 0;
-	/*//change to first range
-	targetVelocity = 4.11;
-	defaultPower = 50;*/
+	//change to first range
+	//targetVelocity = 4.11;
+	//defaultPower = 50;
 	//drive over second stack to bar
 	driveStraight(1100, 1, 1, 100, 500);
 	//aim for second stack
 	driveStraight(400, -1, -1, 100, 0, true);
 	while (driveStraightRunning) { EndTimeSlice(); }
 	//fire second stack
+	//motor[seymore] = 127;
 	startTask(fire);
 
 	while (true){ EndTimeSlice(); }
 }
 
 task usercontrol() {
+	stopTask(fire);
 	initializeTasks();
 
 	while (true)
