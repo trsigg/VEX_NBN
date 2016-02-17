@@ -4,10 +4,10 @@
 #pragma config(Sensor, dgtl7,  flywheelSwitch, sensorDigitalIn)
 #pragma config(Sensor, dgtl8,  solenoidOne,    sensorDigitalOut)
 #pragma config(Sensor, dgtl9,  solenoidTwo,    sensorDigitalOut)
-#pragma config(Motor,  port1,           ce,            tmotorVex393_HBridge, openLoop, reversed)
-#pragma config(Motor,  port2,           rb,            tmotorVex393_MC29, openLoop, reversed)
-#pragma config(Motor,  port3,           er,            tmotorVex393_MC29, openLoop, reversed)
-#pragma config(Motor,  port4,           us,            tmotorVex393_MC29, openLoop, reversed)
+#pragma config(Motor,  port1,           ce,            tmotorVex393_HBridge, openLoop)
+#pragma config(Motor,  port2,           rb,            tmotorVex393_MC29, openLoop)
+#pragma config(Motor,  port3,           er,            tmotorVex393_MC29, openLoop)
+#pragma config(Motor,  port4,           us,            tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port5,           rfdrive,       tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port6,           rbdrive,       tmotorVex393_MC29, openLoop, reversed)
 #pragma config(Motor,  port7,           lfdrive,       tmotorVex393_MC29, openLoop)
@@ -47,7 +47,6 @@ bool velocityUpdated = false;
 float flywheelVelocity = 0;
 float targetVelocity = 0;
 int flywheelPower = 0;
-int targetPower = 0;
 int defaultPower = 0;
 int puncherPower = 80;
 bool driveStraightRunning = false;
@@ -92,17 +91,6 @@ void setLauncherPower(int power) {
 	motor[rb] = flywheelPower;
 	motor[er] = flywheelPower;
 	motor[us] = flywheelPower;
-}
-
-task spinUpControl() {
-	while (true) {
-		while (targetPower == flywheelPower) { EndTimeSlice(); }
-		while (targetPower - flywheelPower > maxAcc) {
-			setLauncherPower(flywheelPower + maxAcc);
-			wait1Msec(100);
-		}
-		setLauncherPower(targetPower);
-	}
 }
 //end set functions region
 
@@ -298,20 +286,20 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 				integral += (prevError + error) * sampleTime / 2;
 			}
 
-			targetPower = defaultPower + kp * error + ki * integral + kd * (error - prevError) / sampleTime;
+			setLauncherPower(defaultPower + kp * error + ki * integral + kd * (error - prevError) / sampleTime);
 			prevError = error;
-			debug = targetPower - defaultPower;
+			debug = flywheelPower - defaultPower;
 		}
 
 		//bang bang control
 		bangBangCount += 1;
 		bangBangPerSec = (float)((float)bangBangCount * 1000) / (float)(time1(T1) + .1);
 		while (abs(targetVelocity - flywheelVelocity) > bangBangErrorMargin * flywheelVelocity && targetVelocity > 0) {
-			targetPower = ((targetVelocity > flywheelVelocity) ? (127) : ( 0));
+			setLauncherPower((targetVelocity > flywheelVelocity) ? (127) : ( 0));
 			EndTimeSlice();
 		}
 
-		targetPower = defaultPower;
+		setLauncherPower(defaultPower);
 		while (targetVelocity == 0) { EndTimeSlice(); } //pauses while
 	}
 }
@@ -337,7 +325,6 @@ void resetFlywheelVars() {
 	flywheelVelocity = 0;
 	targetVelocity = 0;
 	flywheelPower = 0;
-	targetPower = 0;
 	defaultPower = 0;
 }
 
