@@ -26,11 +26,11 @@
 #define maxAcc 30 //the maximum amount a motor's power value can be safely changed in .1 seconds
 #define sampleTime 50. //number of milliseconds between sampling the flywheel velocity and control adjustments in flywheel task
 //PID constants
-#define kp 20. //TO TUNE
+#define kp 5. //TO TUNE
 #define ki 0.1 //TO TUNE
 #define kd 4. //TO TUNE
 #define firingErrorMargin .02 //TO TUNE //percent error allowable in flywheel velocity for firing
-#define bangBangErrorMargin .03 //TO TUNE
+#define bangBangErrorMargin .07 //TO TUNE
 #define integralMargin .02 //TO TUNE
 
 #define fireBtn Btn5U
@@ -55,6 +55,7 @@ int clicks, rightDirection, leftDirection, drivePower, delayAtEnd, timeout;
 float debug;
 float errorDebug;
 int bangBangCount = 0;
+int bbpercentup;
 float bangBangPerSec = 0;
 
 //begin helper functions region
@@ -71,7 +72,7 @@ task calcVelocity() {
 	while (true) {
 		SensorValue[flywheelEncoder] = 0;
 		wait1Msec(sampleTime);
-		flywheelVelocity = (float)(SensorValue[flywheelEncoder]) / (float)(sampleTime);
+		flywheelVelocity = abs((float)(SensorValue[flywheelEncoder])) / (float)(sampleTime);
 		velocityUpdated = true;
 	}
 }
@@ -245,8 +246,8 @@ task puncherSpeeds() {
 
 task flywheel() {
 	TVexJoysticks buttons[5] = {Btn8D, Btn7U, Btn7R, Btn7D, Btn7L}; //creating a pseudo-hash associating buttons with velocities and default motor powers
-	float velocities[5] = {0.0, 3.61, 4.33, 4.67, 4.82};
-	int defaultPowers[5] = {0, 45, 65, 78, 108};
+	float velocities[5] = {0.0, 6.21, 0.89, 1.01, 1.01};
+	int defaultPowers[5] = {0, 49, 67, 82, 127};
 
 	while (true)
 	{
@@ -267,6 +268,7 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 	float prevError;
 	float error;
 	float integral;
+	int numbbup = 0; //debug
 
 	while (true)
 	{
@@ -293,9 +295,11 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 
 		//bang bang control
 		bangBangCount += 1;
+		numbbup += (targetVelocity > flywheelVelocity ? 1 : 0);
+		bbpercentup = 100 * numbbup / bangBangCount;
 		bangBangPerSec = (float)((float)bangBangCount * 1000) / (float)(time1(T1) + .1);
 		while (abs(targetVelocity - flywheelVelocity) > bangBangErrorMargin * flywheelVelocity && targetVelocity > 0) {
-			setLauncherPower((targetVelocity > flywheelVelocity) ? (127) : ( 0));
+			setLauncherPower((targetVelocity > flywheelVelocity) ? (100) : ( 0));
 			EndTimeSlice();
 		}
 
@@ -337,7 +341,6 @@ task launcherMode() {
 			stopTask(puncher);
 			startTask(flywheel);
 			startTask(flywheelStabilization);
-			startTask(spinUpControl);
 			startTask(seymoreControl);
 			startTask(calcVelocity);
 		}
@@ -345,7 +348,6 @@ task launcherMode() {
 			setLauncherPower(0);
 			stopTask(flywheel);
 			stopTask(flywheelStabilization);
-			stopTask(spinUpControl);
 			stopTask(seymoreControl);
 			stopTask(calcVelocity);
 			startTask(puncher);
@@ -360,7 +362,6 @@ void initializeTasks() {
 		resetFlywheelVars();
 		startTask(flywheel);
 		startTask(flywheelStabilization);
-		startTask(spinUpControl);
 		startTask(seymoreControl);
 		startTask(calcVelocity);
 	}
@@ -378,7 +379,6 @@ void emergencyStop() {
 	stopTask(flywheelStabilization);
 	stopTask(puncher);
 	stopTask(feedMeControl);
-	stopTask(spinUpControl);
 	stopTask(seymoreControl);
 	stopTask(calcVelocity);
 	stopTask(launcherMode);
