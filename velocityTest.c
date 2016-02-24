@@ -67,7 +67,7 @@ void spinUp()
 	for (int power = 30; power <= 90; power += 30)
 	{
 		setLauncherPower(power);
-		wait1Msec(1000);
+		wait1Msec(3000);
 	}
 }
 

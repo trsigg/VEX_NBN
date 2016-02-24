@@ -26,10 +26,10 @@
 #define maxAcc 30 //the maximum amount a motor's power value can be safely changed in .1 seconds
 #define sampleTime 50. //number of milliseconds between sampling the flywheel velocity and control adjustments in flywheel task
 //PID constants
-#define kp 5. //TO TUNE
-#define ki 0.1 //TO TUNE
-#define kd 4. //TO TUNE
-#define firingErrorMargin .02 //TO TUNE //percent error allowable in flywheel velocity for firing
+#define kp 20. //TO TUNE
+#define ki 0.5 //TO TUNE
+#define kd 6. //TO TUNE
+#define firingErrorMargin .05 //TO TUNE //percent error allowable in flywheel velocity for firing
 #define bangBangErrorMargin .07 //TO TUNE
 #define integralMargin .02 //TO TUNE
 
@@ -246,8 +246,8 @@ task puncherSpeeds() {
 
 task flywheel() {
 	TVexJoysticks buttons[5] = {Btn8D, Btn7U, Btn7R, Btn7D, Btn7L}; //creating a pseudo-hash associating buttons with velocities and default motor powers
-	float velocities[5] = {0.0, 6.21, 0.89, 1.01, 1.01};
-	int defaultPowers[5] = {0, 49, 67, 82, 127};
+	float velocities[5] = {0.0, 6.21, 7.64, 1.01, 1.01};
+	int defaultPowers[5] = {0, 49, 87, 82, 127};
 
 	while (true)
 	{
