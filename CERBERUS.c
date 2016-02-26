@@ -30,7 +30,7 @@
 #define ki 0.5 //TO TUNE
 #define kd 6. //TO TUNE
 #define firingErrorMargin .05 //TO TUNE //percent error allowable in flywheel velocity for firing
-#define bangBangErrorMargin .07 //TO TUNE
+#define bangBangErrorMargin .10 //TO TUNE
 #define integralMargin .02 //TO TUNE
 
 #define fireBtn Btn5U
@@ -246,8 +246,8 @@ task puncherSpeeds() {
 
 task flywheel() {
 	TVexJoysticks buttons[5] = {Btn8D, Btn7U, Btn7R, Btn7D, Btn7L}; //creating a pseudo-hash associating buttons with velocities and default motor powers
-	float velocities[5] = {0.0, 6.21, 7.64, 1.01, 1.01};
-	int defaultPowers[5] = {0, 49, 87, 82, 127};
+	float velocities[5] = {0.0, 5.01, 5.31, 6.17, 6.51};
+	int defaultPowers[5] = {0, 39, 41, 65, 61};
 
 	while (true)
 	{
@@ -299,7 +299,7 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 		bbpercentup = 100 * numbbup / bangBangCount;
 		bangBangPerSec = (float)((float)bangBangCount * 1000) / (float)(time1(T1) + .1);
 		while (abs(targetVelocity - flywheelVelocity) > bangBangErrorMargin * flywheelVelocity && targetVelocity > 0) {
-			setLauncherPower((targetVelocity > flywheelVelocity) ? (100) : ( 0));
+			setLauncherPower((targetVelocity > flywheelVelocity) ? (127) : ( 0));
 			EndTimeSlice();
 		}
 
