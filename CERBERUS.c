@@ -52,7 +52,7 @@ int puncherPower = 80;
 bool driveStraightRunning = false;
 int clicks, rightDirection, leftDirection, drivePower, delayAtEnd, timeout; //driveStraight
 int ballsToFire, fireTimeout;
-//bool automaticStop = false;
+bool automaticStop = false;
 
 float debug;
 float errorDebug;
@@ -212,7 +212,7 @@ task feedMeControl() {
 }
 
 task seymoreControl() {
-	bool automaticStop = true;
+	//bool automaticStop = true;
 
 	while (true) {
 		seymoreState = 0;
@@ -276,12 +276,12 @@ task flywheel() {
 			{
 				targetVelocity = velocities[i];
 				defaultPower = defaultPowers[i];
-				/*if (i == 4) {
+				if (i == 4) {
 					automaticStop = true;
 				}
 				else {
 					automaticStop = false;
-				}*/
+				}
 			}
 			EndTimeSlice();
 		}
