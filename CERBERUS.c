@@ -52,6 +52,7 @@ int puncherPower = 80;
 bool driveStraightRunning = false;
 int clicks, rightDirection, leftDirection, drivePower, delayAtEnd, timeout; //driveStraight
 int ballsToFire, fireTimeout;
+//bool automaticStop = false;
 
 float debug;
 float errorDebug;
@@ -76,7 +77,7 @@ task calcVelocity() {
 	while (true) {
 		SensorValue[flywheelEncoder] = 0;
 		wait1Msec(sampleTime);
-		flywheelVelocity = abs((float)(SensorValue[flywheelEncoder])) * 1000 / (float)(sampleTime);
+		flywheelVelocity = abs((float)(SensorValue[flywheelEncoder])) / (float)(sampleTime);
 		velocityUpdated = true;
 	}
 }
@@ -264,8 +265,8 @@ task puncherSpeeds() {
 
 task flywheel() {
 	TVexJoysticks buttons[5] = {Btn8D, Btn7U, Btn7R, Btn7D, Btn7L}; //creating a pseudo-hash associating buttons with velocities and default motor powers
-	float velocities[5] = {0.0, 4.11, 8.22, 8.79, 4.08};
-	int defaultPowers[5] = {0, 49, 55, 67, 90};
+	float velocities[5] = {0.0, 7.00, 7.74, 8.79, 9.54};
+	int defaultPowers[5] = {0, 40, 50, 67, 80};
 
 	while (true)
 	{
@@ -275,6 +276,12 @@ task flywheel() {
 			{
 				targetVelocity = velocities[i];
 				defaultPower = defaultPowers[i];
+				/*if (i == 4) {
+					automaticStop = true;
+				}
+				else {
+					automaticStop = false;
+				}*/
 			}
 			EndTimeSlice();
 		}
@@ -420,35 +427,39 @@ task autonomous() {
 	initializeTasks();
 	stopTask(feedMeControl);
 	stopTask(seymoreControl);
-	targetVelocity = 9.93;
-	defaultPower = 84;
+	targetVelocity = 9.54;
+	defaultPower = 80;
 
-	fire(4, 6000); //fire four initial preloads
+	motor[seymore] = 63;//fire(4, 6000); //fire four initial preloads
+	motor[feedMe] = 127;
+	wait1Msec(6000);
+	motor[seymore] = 0;
 	//set to first range
 	targetVelocity = 7.78;
 	defaultPower = 49;
 
 	driveStraight(15, 1, -1, 50, 125); //turn to face first stack
-	motor[feedMe] = 127;
 	wait1Msec(125); //prevent breaker overload
 	driveStraight(600, 1, 1, 100, 250); //pick up first stack
 	driveStraight(5, -1, 1, 30, 250); //turn toward net
 	//drive toward net
-	driveStraight(900, 1, 1, 100, 500, true);
+	driveStraight(800, 1, 1, 100, 500, true);
 	while (driveStraightRunning) { EndTimeSlice(); }
 	//fire first stack
-	fire(3);
+	motor[seymore] = 127; //fire(3);
+	wait1Msec(4000);
+	motor[seymore] = 0;
 	//change to first range
 	//targetVelocity = 4.11;
 	//defaultPower = 50;
 	//drive over second stack to bar
-	driveStraight(1100, 1, 1, 100, 500);
+	driveStraight(1000, 1, 1, 100, 500);
 	//aim for second stack
 	driveStraight(400, -1, -1, 100, 0, true);
 	while (driveStraightRunning) { EndTimeSlice(); }
 	//fire second stack
 	//motor[seymore] = 127;
-	fire(15, 15000);
+	motor[seymore] = 127;//fire(15, 15000);
 
 	while (true){ EndTimeSlice(); }
 }
