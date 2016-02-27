@@ -26,12 +26,12 @@
 #define maxAcc 30 //the maximum amount a motor's power value can be safely changed in .1 seconds
 #define sampleTime 50. //number of milliseconds between sampling the flywheel velocity and control adjustments in flywheel task
 //PID constants
-#define kp 20. //TO TUNE
+#define kp 20.0 //TO TUNE
 #define ki 0.5 //TO TUNE
-#define kd 6. //TO TUNE
-#define firingErrorMargin .05 //TO TUNE //percent error allowable in flywheel velocity for firing
-#define bangBangErrorMargin .10 //TO TUNE
-#define integralMargin .02 //TO TUNE
+#define kd 4.0 //TO TUNE
+#define firingErrorMargin .04 //TO TUNE //percent error allowable in flywheel velocity for firing
+#define bangBangErrorMargin .03 //TO TUNE
+#define integralMargin .04 //TO TUNE
 
 #define fireBtn Btn5U
 #define seymoreOutBtn Btn5D
@@ -55,8 +55,11 @@ int clicks, rightDirection, leftDirection, drivePower, delayAtEnd, timeout;
 float debug;
 float errorDebug;
 int bangBangCount = 0;
+bool incorrectPID = false;
 int bbpercentup;
 float bangBangPerSec = 0;
+float avgError = 0;
+int seymoreState = 0;
 
 //begin helper functions region
 int limit(int input, int min, int max) {
@@ -197,19 +200,23 @@ task feedMeControl() {
 }
 
 task seymoreControl() {
-	bool automaticStop = false;
+	bool automaticStop = true;
 
 	while (true) {
+		seymoreState = 0;
 		while (vexRT[fireBtn] == 0 && vexRT[seymoreOutBtn] == 0 && vexRT[seymoreManualOverrideBtn] == 0) { EndTimeSlice(); }
 		if (vexRT[fireBtn] == 1) {
-			motor[seymore] = (SensorValue[flywheelSwitch] == 1 || abs(targetVelocity - flywheelVelocity) < firingErrorMargin * targetVelocity || !automaticStop ? 127 : 0);
+			seymoreState = 1;
+			motor[seymore] = 127/*(SensorValue[flywheelSwitch] == 1 || abs(targetVelocity - flywheelVelocity) < firingErrorMargin * targetVelocity || !automaticStop ? 127 : 0)*/;
 			while (vexRT[fireBtn] == 1 && (SensorValue[flywheelSwitch] == 1  || abs(targetVelocity - flywheelVelocity) < firingErrorMargin * targetVelocity || !automaticStop)) { EndTimeSlice(); }
 		}
 		else if (vexRT[seymoreOutBtn] == 1) {
+			seymoreState = 2;
 			motor[seymore] = -127;
 			while (vexRT[seymoreOutBtn] == 1) { EndTimeSlice(); }
 		}
 		else {
+			seymoreState = 3;
 			automaticStop = !automaticStop;
 			while (vexRT[seymoreManualOverrideBtn] == 1) { EndTimeSlice(); }
 		}
@@ -246,8 +253,8 @@ task puncherSpeeds() {
 
 task flywheel() {
 	TVexJoysticks buttons[5] = {Btn8D, Btn7U, Btn7R, Btn7D, Btn7L}; //creating a pseudo-hash associating buttons with velocities and default motor powers
-	float velocities[5] = {0.0, 5.01, 5.31, 6.17, 6.51};
-	int defaultPowers[5] = {0, 39, 41, 65, 61};
+	float velocities[5] = {0.0, 7.53, 7.92, 4.44, 10.07};
+	int defaultPowers[5] = {0, 45, 53, 65, 104};
 
 	while (true)
 	{
@@ -269,18 +276,24 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 	float error;
 	float integral;
 	int numbbup = 0; //debug
+	float totalError = 0;
+  int numloops = 0;
 
 	while (true)
 	{
 		prevError = targetVelocity - flywheelVelocity;
 		integral = 0;
 
-		while (abs(targetVelocity - flywheelVelocity) < bangBangErrorMargin * flywheelVelocity && targetVelocity > 0) //PID control
+		while (abs(targetVelocity - flywheelVelocity) < bangBangErrorMargin * flywheelVelocity && targetVelocity > 0/*true*/) //PID control
 		{
 			wait1Msec(sampleTime);
 			while (!velocityUpdated) { EndTimeSlice(); }
 			error = (targetVelocity - flywheelVelocity);
 			errorDebug = error;
+			totalError += abs(error);
+    	numloops += 1;
+    	avgError = totalError / numloops;
+
 			velocityUpdated = false;
 
 			if (abs(error) < integralMargin * flywheelVelocity)
@@ -291,6 +304,7 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 			setLauncherPower(defaultPower + kp * error + ki * integral + kd * (error - prevError) / sampleTime);
 			prevError = error;
 			debug = flywheelPower - defaultPower;
+			incorrectPID = sgn(debug) != sgn(error);
 		}
 
 		//bang bang control
@@ -298,7 +312,7 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 		numbbup += (targetVelocity > flywheelVelocity ? 1 : 0);
 		bbpercentup = 100 * numbbup / bangBangCount;
 		bangBangPerSec = (float)((float)bangBangCount * 1000) / (float)(time1(T1) + .1);
-		while (abs(targetVelocity - flywheelVelocity) > bangBangErrorMargin * flywheelVelocity && targetVelocity > 0) {
+		while (abs(targetVelocity - flywheelVelocity) > bangBangErrorMargin * flywheelVelocity  * 0.75 && targetVelocity > 0) {
 			setLauncherPower((targetVelocity > flywheelVelocity) ? (127) : ( 0));
 			EndTimeSlice();
 		}
