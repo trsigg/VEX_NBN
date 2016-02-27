@@ -212,7 +212,7 @@ task feedMeControl() {
 }
 
 task seymoreControl() {
-	bool automaticStop = false;
+	bool automaticStop = true;
 
 	while (true) {
 		seymoreState = 0;
