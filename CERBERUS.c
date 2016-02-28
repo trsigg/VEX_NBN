@@ -430,13 +430,13 @@ task autonomous() {
 	targetVelocity = 9.54;
 	defaultPower = 80;
 
-	motor[seymore] = 63;//fire(4, 6000); //fire four initial preloads
+	motor[seymore] = 127;//fire(4, 6000); //fire four initial preloads
 	motor[feedMe] = 127;
-	wait1Msec(6000);
+	wait1Msec(3500);
 	motor[seymore] = 0;
 	//set to first range
-	targetVelocity = 7.78;
-	defaultPower = 49;
+	targetVelocity = 7.00;
+	defaultPower = 40;
 
 	driveStraight(15, 1, -1, 50, 125); //turn to face first stack
 	wait1Msec(125); //prevent breaker overload
