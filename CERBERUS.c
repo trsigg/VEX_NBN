@@ -38,16 +38,21 @@
 #define feedInBtn Btn6U
 #define feedOutBtn Btn6D
 
+bool automaticStop = false; //seymoreControl
+//driveStraight
+bool driveStraightRunning = false;
+int clicks, rightDirection, leftDirection, drivePower, delayAtEnd, timeout; //driveStraight
+//fire
+int ballsToFire, shotsFired, fireTimeout;
+bool fireRunning
+//flywheel variables
 bool velocityUpdated = false;
 float flywheelVelocity = 0;
 float targetVelocity = 0;
 int flywheelPower = 0;
 int defaultPower = 0;
-bool driveStraightRunning = false;
-int clicks, rightDirection, leftDirection, drivePower, delayAtEnd, timeout; //driveStraight
-int ballsToFire, fireTimeout;
-bool automaticStop = false;
 
+//debugging
 float debug;
 float errorDebug;
 int bangBangCount = 0;
@@ -92,6 +97,11 @@ void setLauncherPower(int power) {
 	motor[rb] = flywheelPower;
 	motor[er] = flywheelPower;
 	motor[us] = flywheelPower;
+}
+
+void setFlywheelRange(int range) {
+	float velocities[5] = { 0.0, 7.00, 7.74, 8.79, 9.54 };
+	targetVelocity = velocities[limit(range, 0, 4)];
 }
 //end set functions region
 
@@ -167,26 +177,35 @@ void driveStraight(int _clicks_, int _leftDirection_, int _rightDirection_, int 
 	}
 }
 
-task fireTask() {
-	int shotsFired = 0;
-	clearTimer(T2);
-	motor[feedMe] = 127;
-	motor[seymore] = 127;
+task countShots() {
+	shotsFired = 0;
 	while (shotsFired < ballsToFire && time1(T2) < fireTimeout) {
+		while (SensorValue[flywheelSwitch] == 1) { EndTimeSlice(); }
+		shotsFired++;
+		while (SensorValue[flywheelSwitch] == 0) { EndTimeSlice(); }
+	}
+}
+
+task fireTask() {
+	fireRunning = true;
+	clearTimer(T2);
+	startTask(countShots);
+
+	while (shotsFired < ballsToFire && time1(T2) < fireTimeout) {
+		motor[seymore] = 127;
 		while ((SensorValue[flywheelSwitch] == 1 || abs(targetVelocity - flywheelVelocity) < firingErrorMargin * targetVelocity) && time1(T2) < fireTimeout) { EndTimeSlice(); }
 		motor[seymore] = 0;
-		shotsFired++;
-		wait1Msec(1000);
-		//while(!(SensorValue[flywheelSwitch] == 1 || abs(targetVelocity - flywheelVelocity) < firingErrorMargin * targetVelocity) && time1(T2) < fireTimeout) { EndTimeSlice(); }
-		motor[seymore] = 127;
+		while(!(SensorValue[flywheelSwitch] == 1 || abs(targetVelocity - flywheelVelocity) < firingErrorMargin * targetVelocity) && time1(T2) < fireTimeout) { EndTimeSlice(); }
 	}
 	motor[seymore] = 0;
+	fireRunning = false;
 }
 
 void fire(int _ballsToFire_, int _fireTimeout_=4000) {
 		ballsToFire = _ballsToFire_;
 		fireTimeout = _fireTimeout_;
 		startTask(fireTask);
+		while (fireRunning) { EndTimeSlice(); }
 }
 //end autonomous region
 
@@ -233,17 +252,12 @@ task seymoreControl() {
 
 task flywheel() {
 	TVexJoysticks buttons[5] = {Btn8D, Btn7U, Btn7R, Btn7D, Btn7L}; //creating a pseudo-hash associating buttons with velocities and default motor powers
-	float velocities[5] = {0.0, 7.00, 7.74, 8.79, 9.54};
-	int defaultPowers[5] = {0, 40, 50, 67, 80};
 
-	while (true)
-	{
-		for (int i = 0; i < 5; i++)
-		{
-			if (vexRT[buttons[i]] == 1)
-			{
-				targetVelocity = velocities[i];
-				defaultPower = defaultPowers[i];
+	while (true) {
+		for (int i = 0; i < 5; i++)	{
+			if (vexRT[buttons[i]] == 1)	{
+				setFlywheelRange(i);
+
 				if (i == 4) {
 					automaticStop = true;
 				}
@@ -345,16 +359,11 @@ task autonomous() {
 	initializeTasks();
 	stopTask(feedMeControl);
 	stopTask(seymoreControl);
-	targetVelocity = 9.54;
-	defaultPower = 80;
+	setFlywheelRange(4);
 
-	motor[seymore] = 127;//fire(4, 6000); //fire four initial preloads
 	motor[feedMe] = 127;
-	wait1Msec(3500);
-	motor[seymore] = 0;
-	//set to first range
-	targetVelocity = 7.00;
-	defaultPower = 40;
+	fire(4); //fire four initial preloads
+	setFlywheelRange(1);
 
 	driveStraight(15, 1, -1, 50, 125); //turn to face first stack
 	wait1Msec(125); //prevent breaker overload
