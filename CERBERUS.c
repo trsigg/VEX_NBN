@@ -22,28 +22,21 @@
 #pragma userControlDuration(120)
 #include "Vex_Competition_Includes.c"   //Main competition background code...do not modify!
 
+#define maxAcc 30 //the maximum amount a motor's power value can be safely changed in .1 seconds
 #define sampleTime 50. //number of milliseconds between sampling the flywheel velocity and control adjustments in flywheel task
-#define adjustmentMaxDuration 750 //the maximum duration fo the adjustment period
 //PID constants
-#define kp 13.0
-#define ki 0.5
-#define kd 5.0
-//error ranges
-#define firingErrorMargin 0.04
-#define bangBangErrorMargin 0.03
-#define integralMargin 0.1
-#define adjustmentMargin 0.04
+#define kp 13.0 //TO TUNE
+#define ki 0.5 //TO TUNE
+#define kd 5.0 //TO TUNE
+#define firingErrorMargin .04 //TO TUNE //percent error allowable in flywheel velocity for firing
+#define bangBangErrorMargin .03 //TO TUNE
+#define integralMargin .04 //TO TUNE
 
 #define fireBtn Btn5U
 #define seymoreOutBtn Btn5D
 #define seymoreManualOverrideBtn Btn8U
 #define feedInBtn Btn6U
 #define feedOutBtn Btn6D
-
-#define flywheelTimer T1
-#define firingTimer T2
-#define adjustmentTimer T3
-#define driveTimer T4
 
 bool automaticStop = false; //seymoreControl
 //driveStraight
@@ -54,14 +47,16 @@ int ballsToFire, shotsFired, fireTimeout;
 bool fireRunning
 //flywheel variables
 bool velocityUpdated = false;
-bool adjustmentPeriod = false;
 float flywheelVelocity = 0;
 float targetVelocity = 0;
 int flywheelPower = 0;
+int defaultPower = 0;
 
 //debugging
+float debug;
 float errorDebug;
 int bangBangCount = 0;
+bool incorrectPID = false;
 int bbpercentup;
 float bangBangPerSec = 0;
 float avgError = 0;
@@ -85,13 +80,6 @@ task calcVelocity() {
 		flywheelVelocity = abs((float)(SensorValue[flywheelEncoder1] + SensorValue[flywheelEncoder2])) / (float)(2 * sampleTime);
 		velocityUpdated = true;
 	}
-}
-
-task adjustmentPeriod() {
-	adjustmentPeriod = true;
-	clearTimer(adjustmentTimer);
-	while (abs(targetVelocity - flywheelVelocity) < targetVelocity * adjustmentMargin && time1(adjustmentTimer) < adjustmentMaxDuration) { EndTimeSlice(); }
-	adjustmentPeriod = false;
 }
 //end helper functions region
 
@@ -129,9 +117,9 @@ task driveStraightTask()
 
   SensorValue[leftEncoder] = 0;
   SensorValue[rightEncoder] = 0;
-  clearTimer(driveTimer);
+  clearTimer(T1);
 
-  while(abs(totalClicks) < clicks && time1(driveTimer) < timeout)
+  while(abs(totalClicks) < clicks && time1(T1) < timeout)
   {
     setDrivePower(drivePower * leftDirection, slavePower * rightDirection);
 
@@ -168,9 +156,9 @@ void driveStraight(int _clicks_, int _leftDirection_, int _rightDirection_, int 
 
 	  SensorValue[leftEncoder] = 0;
 	  SensorValue[rightEncoder] = 0;
-	  clearTimer(driveTimer);
+	  clearTimer(T1);
 
-	  while(abs(totalClicks) < clicks  && time1(driveTimer) < timeout)
+	  while(abs(totalClicks) < clicks  && time1(T1) < timeout)
 	  {
 	    setDrivePower(drivePower * leftDirection, slavePower * rightDirection);
 
@@ -191,7 +179,7 @@ void driveStraight(int _clicks_, int _leftDirection_, int _rightDirection_, int 
 
 task countShots() {
 	shotsFired = 0;
-	while (shotsFired < ballsToFire && time1(firingTimer) < fireTimeout) {
+	while (shotsFired < ballsToFire && time1(T2) < fireTimeout) {
 		while (SensorValue[flywheelSwitch] == 1) { EndTimeSlice(); }
 		shotsFired++;
 		while (SensorValue[flywheelSwitch] == 0) { EndTimeSlice(); }
@@ -200,14 +188,14 @@ task countShots() {
 
 task fireTask() {
 	fireRunning = true;
-	clearTimer(firingTimer);
+	clearTimer(T2);
 	startTask(countShots);
 
-	while (shotsFired < ballsToFire && time1(firingTimer) < fireTimeout) {
+	while (shotsFired < ballsToFire && time1(T2) < fireTimeout) {
 		motor[seymore] = 127;
-		while ((SensorValue[flywheelSwitch] == 1 || abs(targetVelocity - flywheelVelocity) < firingErrorMargin * targetVelocity) && time1(firingTimer) < fireTimeout) { EndTimeSlice(); }
+		while ((SensorValue[flywheelSwitch] == 1 || abs(targetVelocity - flywheelVelocity) < firingErrorMargin * targetVelocity) && time1(T2) < fireTimeout) { EndTimeSlice(); }
 		motor[seymore] = 0;
-		while(!(SensorValue[flywheelSwitch] == 1 || abs(targetVelocity - flywheelVelocity) < firingErrorMargin * targetVelocity) && time1(firingTimer) < fireTimeout) { EndTimeSlice(); }
+		while(!(SensorValue[flywheelSwitch] == 1 || abs(targetVelocity - flywheelVelocity) < firingErrorMargin * targetVelocity) && time1(T2) < fireTimeout) { EndTimeSlice(); }
 	}
 	motor[seymore] = 0;
 	fireRunning = false;
@@ -262,13 +250,12 @@ task seymoreControl() {
 }
 
 task flywheel() {
-	TVexJoysticks buttons[5] = {Btn8D, Btn7U, Btn7R, Btn7D, Btn7L};
+	TVexJoysticks buttons[5] = {Btn8D, Btn7U, Btn7R, Btn7D, Btn7L}; //creating a pseudo-hash associating buttons with velocities and default motor powers
 
 	while (true) {
 		for (int i = 0; i < 5; i++)	{
 			if (vexRT[buttons[i]] == 1)	{
 				setFlywheelRange(i);
-				startTask(adjustmentPeriod);
 
 				if (i == 4) {
 					automaticStop = true;
@@ -283,25 +270,28 @@ task flywheel() {
 }
 
 task flywheelStabilization() { //modulates motor powers to maintain constant flywheel velocity
-	clearTimer(flywheelTimer);
-	float prevError = targetVelocity - flywheelVelocity;
+	clearTimer(T1);
+	float prevError;
 	float error;
-	float integral = 0;
+	float integral;
 	int numbbup = 0; //debug
 	float totalError = 0;
-	int numloops = 0;
+  int numloops = 0;
 
 	while (true)
 	{
-		while ((abs(targetVelocity - flywheelVelocity) < bangBangErrorMargin * flywheelVelocity && targetVelocity > 0) || adjustmentPeriod) //PID control
+		prevError = targetVelocity - flywheelVelocity;
+		integral = 0;
+
+		while (abs(targetVelocity - flywheelVelocity) < bangBangErrorMargin * flywheelVelocity && targetVelocity > 0/*true*/) //PID control
 		{
+			wait1Msec(sampleTime);
 			while (!velocityUpdated) { EndTimeSlice(); }
 			error = (targetVelocity - flywheelVelocity);
-			//debug
 			errorDebug = error;
 			totalError += abs(error);
-    		numloops += 1;
-    		avgError = totalError / numloops;
+    	numloops += 1;
+    	avgError = totalError / numloops;
 
 			velocityUpdated = false;
 
@@ -310,24 +300,24 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 				integral += (prevError + error) * sampleTime / 2;
 			}
 
-			setLauncherPower(kp * error + ki * integral + kd * (error - prevError) / sampleTime);
+			setLauncherPower(defaultPower + kp * error + ki * integral + kd * (error - prevError) / sampleTime);
 			prevError = error;
+			debug = flywheelPower - defaultPower;
+			incorrectPID = sgn(debug) != sgn(error);
 		}
 
-		//debug
+		//bang bang control
 		bangBangCount += 1;
 		numbbup += (targetVelocity > flywheelVelocity ? 1 : 0);
 		bbpercentup = 100 * numbbup / bangBangCount;
-		bangBangPerSec = (float)((float)bangBangCount * 1000) / (float)(time1(flywheelTimer) + .1);
-
-		//bang bang control
-		while (abs(targetVelocity - flywheelVelocity) > bangBangErrorMargin * flywheelVelocity  * 0.75 && targetVelocity > 0 && !adjustmentPeriod) {
+		bangBangPerSec = (float)((float)bangBangCount * 1000) / (float)(time1(T1) + .1);
+		while (abs(targetVelocity - flywheelVelocity) > bangBangErrorMargin * flywheelVelocity  * 0.75 && targetVelocity > 0) {
 			setLauncherPower((targetVelocity > flywheelVelocity) ? (127) : ( 0));
 			EndTimeSlice();
 		}
 
-		velocityUpdated = false;
-		while (targetVelocity == 0) { EndTimeSlice(); } //pauses when flywheel is not powered
+		setLauncherPower(defaultPower);
+		while (targetVelocity == 0) { EndTimeSlice(); } //pauses while
 	}
 }
 //end user input region
