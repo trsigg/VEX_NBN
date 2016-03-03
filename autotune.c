@@ -1,14 +1,12 @@
 bool justevaled = false;
 bool running = true;
 int peakCount = 0;
-double input;
+float input;
 int peakType;
-int peakCount;
 bool justchanged;
 double absMax;
 double absMin;
 double setpoint;
-bool running;
 double outputStart;
 double output;
 
