@@ -205,7 +205,6 @@ void fire(int _ballsToFire_, int _fireTimeout_=4000) {
 		ballsToFire = _ballsToFire_;
 		fireTimeout = _fireTimeout_;
 		startTask(fireTask);
-		while (fireRunning) { EndTimeSlice(); }
 }
 //end autonomous region
 
@@ -357,37 +356,33 @@ void pre_auton() { bStopTasksBetweenModes = true; }
 task autonomous() {
 	//start flywheel
 	initializeTasks();
-	stopTask(feedMeControl);
-	stopTask(seymoreControl);
 	setFlywheelRange(4);
-
+	//fire four initial preloads
 	motor[feedMe] = 127;
-	fire(4); //fire four initial preloads
-	setFlywheelRange(1);
+	fire(4);
+	while (fireRunning) { EndTimeSlice(); }
 
-	driveStraight(15, 1, -1, 50, 125); //turn to face first stack
-	wait1Msec(125); //prevent breaker overload
+	setFlywheelRange(1);
+	driveStraight(15, 1, -1, 50, 250); //turn to face first stack
 	driveStraight(600, 1, 1, 100, 250); //pick up first stack
 	driveStraight(5, -1, 1, 30, 250); //turn toward net
 	//drive toward net
 	driveStraight(800, 1, 1, 100, 500, true);
 	while (driveStraightRunning) { EndTimeSlice(); }
 	//fire first stack
-	motor[seymore] = 127; //fire(3);
-	wait1Msec(4000);
-	motor[seymore] = 0;
-	//change to first range
-	//targetVelocity = 4.11;
-	//defaultPower = 50;
-	//drive over second stack to bar
-	driveStraight(1000, 1, 1, 100, 500);
-	//aim for second stack
-	driveStraight(400, -1, -1, 100, 0, true);
+	fire(3);
+	while (fireRunning) { EndTimeSlice(); }
+
+	
+	driveStraight(1000, 1, 1, 100, 500); //drive over second stack to bar
+	driveStraight(400, -1, -1, 100, 0, true); //aim for second stack
 	while (driveStraightRunning) { EndTimeSlice(); }
 	//fire second stack
-	//motor[seymore] = 127;
-	motor[seymore] = 127;//fire(15, 15000);
+	fire(3);
+	while (fireRunning) { EndTimeSlice(); }
 
+	//make sure all balls are cleared out
+	motor[seymore] = 127;
 	while (true){ EndTimeSlice(); }
 }
 
