@@ -3,7 +3,6 @@
 #pragma config(Sensor, dgtl5,  rightEncoder,   sensorQuadEncoder)
 #pragma config(Sensor, dgtl7,  flywheelSwitch, sensorDigitalIn)
 #pragma config(Sensor, dgtl8,  flywheelEncoder2, sensorQuadEncoder)
-#pragma config(Sensor, dgtl10, feedSwitch,     sensorDigitalIn)
 #pragma config(Motor,  port1,           ce,            tmotorVex393_HBridge, openLoop)
 #pragma config(Motor,  port2,           rb,            tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port3,           er,            tmotorVex393_MC29, openLoop)
@@ -25,11 +24,10 @@
 
 #define sampleTime 50. //number of milliseconds between sampling the flywheel velocity and control adjustments in flywheel task
 #define adjustmentMaxDuration 750 //the maximum duration fo the adjustment period
-#define seymoreDelay 750
 //PID constants
-#define kp 13.0 //12.6
-#define ki 0.5 //.001
-#define kd 5.0 //3.4
+#define kp 13.0
+#define ki 0.5
+#define kd 5.0
 //error ranges
 #define firingErrorMargin 0.04
 #define bangBangErrorMargin 0.03
@@ -38,14 +36,14 @@
 
 #define fireBtn Btn5U
 #define seymoreOutBtn Btn5D
-#define toggleAutostopBtn Btn8U
+#define seymoreManualOverrideBtn Btn8U
 #define feedInBtn Btn6U
 #define feedOutBtn Btn6D
 
 #define flywheelTimer T1
 #define firingTimer T2
 #define adjustmentTimer T3
-#define miscTimer T4
+#define driveTimer T4
 
 bool automaticStop = false; //seymoreControl
 //driveStraight
@@ -53,7 +51,7 @@ bool driveStraightRunning = false;
 int clicks, rightDirection, leftDirection, drivePower, delayAtEnd, timeout; //driveStraight
 //fire
 int ballsToFire, shotsFired, fireTimeout;
-bool fireRunning;
+bool fireRunning
 //flywheel variables
 bool velocityUpdated = false;
 bool adjustmentPeriod = false;
@@ -67,6 +65,7 @@ int bangBangCount = 0;
 int bbpercentup;
 float bangBangPerSec = 0;
 float avgError = 0;
+int seymoreState = 0;
 
 //begin helper functions region
 int limit(int input, int min, int max) {
@@ -88,7 +87,7 @@ task calcVelocity() {
 	}
 }
 
-task adjustmentPeriodTask() {
+task adjustmentPeriod() {
 	adjustmentPeriod = true;
 	clearTimer(adjustmentTimer);
 	while (abs(targetVelocity - flywheelVelocity) < targetVelocity * adjustmentMargin && time1(adjustmentTimer) < adjustmentMaxDuration) { EndTimeSlice(); }
@@ -130,9 +129,9 @@ task driveStraightTask()
 
   SensorValue[leftEncoder] = 0;
   SensorValue[rightEncoder] = 0;
-  clearTimer(miscTimer);
+  clearTimer(driveTimer);
 
-  while(abs(totalClicks) < clicks && time1(miscTimer) < timeout)
+  while(abs(totalClicks) < clicks && time1(driveTimer) < timeout)
   {
     setDrivePower(drivePower * leftDirection, slavePower * rightDirection);
 
@@ -169,9 +168,9 @@ void driveStraight(int _clicks_, int _leftDirection_, int _rightDirection_, int 
 
 	  SensorValue[leftEncoder] = 0;
 	  SensorValue[rightEncoder] = 0;
-	  clearTimer(miscTimer);
+	  clearTimer(driveTimer);
 
-	  while(abs(totalClicks) < clicks  && time1(miscTimer) < timeout)
+	  while(abs(totalClicks) < clicks  && time1(driveTimer) < timeout)
 	  {
 	    setDrivePower(drivePower * leftDirection, slavePower * rightDirection);
 
@@ -238,40 +237,27 @@ task feedMeControl() {
 }
 
 task seymoreControl() {
-	automaticStop = false;
+	//bool automaticStop = true;
 
 	while (true) {
-			while (SensorValue[feedSwitch] == 1 && vexRT[fireBtn] == 0 && vexRT[seymoreOutBtn] == 0 && vexRT[toggleAutostopBtn] == 0) {
-			if (vexRT[fireBtn] == 1) { //firing
-				stopTask(feedMeControl);
-				motor[feedMe] = 127;
-				while (vexRT[fireBtn] == 1) {
-					motor[seymore] = (abs(flywheelVelocity - targetVelocity) < firingErrorMargin * targetVelocity || SensorValue[flywheelSwitch] == 1 ? 127 : 0);
-					EndTimeSlice();
-				}
-				motor[feedMe] = 0;
-				motor[seymore] = 0;
-				startTask(feedMeControl);
-			}
-			else if (vexRT[seymoreOutBtn] == 1) { //feed out
-				motor[seymore] = -127;
-				while (vexRT[seymoreOutBtn] == 1) { EndTimeSlice(); }
-				motor[seymore] = 0;
-			}
-			else if (SensorValue[feedSwitch] == 0) { //bottomFeedSwitch is pressed
-				motor[seymore] = (SensorValue[flywheelSwitch] == 1 ? 127 : 0);
-				while (SensorValue[flywheelSwitch] == 1 && SensorValue[feedSwitch] == 1 && vexRT[fireBtn] == 0 && vexRT[seymoreOutBtn] == 0) { EndTimeSlice(); }
-				if (SensorValue[flywheelSwitch] == 1) {
-					clearTimer(miscTimer);
-					while (time1(miscTimer) < seymoreDelay && SensorValue[flywheelSwitch] == 1) { EndTimeSlice(); }
-				}
-				motor[seymore] = 0;
-			}
-			else { //toggleAutostopBtn is pressed
-				automaticStop = !automaticStop;
-				while (vexRT[toggleAutostopBtn] == 1]) { EndTimeSlice(); }
-			}
+		seymoreState = 0;
+		while (vexRT[fireBtn] == 0 && vexRT[seymoreOutBtn] == 0 && vexRT[seymoreManualOverrideBtn] == 0) { EndTimeSlice(); }
+		if (vexRT[fireBtn] == 1) {
+			seymoreState = 1;
+			motor[seymore] = 127/*(SensorValue[flywheelSwitch] == 1 || abs(targetVelocity - flywheelVelocity) < firingErrorMargin * targetVelocity || !automaticStop ? 127 : 0)*/;
+			while (vexRT[fireBtn] == 1 && (SensorValue[flywheelSwitch] == 1  || abs(targetVelocity - flywheelVelocity) < firingErrorMargin * targetVelocity || !automaticStop)) { EndTimeSlice(); }
 		}
+		else if (vexRT[seymoreOutBtn] == 1) {
+			seymoreState = 2;
+			motor[seymore] = -127;
+			while (vexRT[seymoreOutBtn] == 1) { EndTimeSlice(); }
+		}
+		else {
+			seymoreState = 3;
+			automaticStop = !automaticStop;
+			while (vexRT[seymoreManualOverrideBtn] == 1) { EndTimeSlice(); }
+		}
+		motor[seymore] = 0;
 	}
 }
 
@@ -282,7 +268,7 @@ task flywheel() {
 		for (int i = 0; i < 5; i++)	{
 			if (vexRT[buttons[i]] == 1)	{
 				setFlywheelRange(i);
-				startTask(adjustmentPeriodTask);
+				startTask(adjustmentPeriod);
 
 				if (i == 4) {
 					automaticStop = true;
@@ -352,6 +338,7 @@ void resetFlywheelVars() {
 	flywheelVelocity = 0;
 	targetVelocity = 0;
 	flywheelPower = 0;
+	defaultPower = 0;
 }
 
 void initializeTasks() {
@@ -396,7 +383,7 @@ task autonomous() {
 	fire(3);
 	while (fireRunning) { EndTimeSlice(); }
 
-
+	
 	driveStraight(1000, 1, 1, 100, 500); //drive over second stack to bar
 	driveStraight(400, -1, -1, 100, 0, true); //aim for second stack
 	while (driveStraightRunning) { EndTimeSlice(); }
