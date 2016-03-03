@@ -1,9 +1,9 @@
-#pragma config(Sensor, dgtl1,  flywheelEncoder1, sensorQuadEncoder)
+#pragma config(Sensor, in1,    gyro,           sensorGyro)
+#pragma config(Sensor, dgtl1,  flywheelEncoder, sensorQuadEncoder)
 #pragma config(Sensor, dgtl3,  leftEncoder,    sensorQuadEncoder)
 #pragma config(Sensor, dgtl5,  rightEncoder,   sensorQuadEncoder)
 #pragma config(Sensor, dgtl7,  flywheelSwitch, sensorDigitalIn)
-#pragma config(Sensor, dgtl8,  flywheelEncoder2, sensorQuadEncoder)
-#pragma config(Sensor, dgtl10, feedSwitch,     sensorDigitalIn)
+#pragma config(Sensor, dgtl8,  feedSwitch,     sensorDigitalIn)
 #pragma config(Motor,  port1,           ce,            tmotorVex393_HBridge, openLoop)
 #pragma config(Motor,  port2,           rb,            tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port3,           er,            tmotorVex393_MC29, openLoop)
@@ -27,9 +27,9 @@
 #define adjustmentMaxDuration 750 //the maximum duration fo the adjustment period
 #define seymoreDelay 750
 //PID constants
-#define kp 13.0 //12.6
-#define ki 0.5 //.001
-#define kd 5.0 //3.4
+#define kp 12.6 //12.6-13.0
+#define ki 0.5 //.001-.5
+#define kd 3.4 //3.4-5.0
 //error ranges
 #define firingErrorMargin 0.04
 #define bangBangErrorMargin 0.03
@@ -48,6 +48,10 @@
 #define miscTimer T4
 
 bool automaticStop = false; //seymoreControl
+//turn
+float degreesToTurn;
+int turnSpeed;
+bool turningLeft;
 //driveStraight
 bool driveStraightRunning = false;
 int clicks, rightDirection, leftDirection, drivePower, delayAtEnd, timeout; //driveStraight
@@ -80,10 +84,9 @@ int limit(int input, int min, int max) {
 
 task calcVelocity() {
 	while (true) {
-		SensorValue[flywheelEncoder1] = 0;
-		SensorValue[flywheelEncoder2] = 0;
+		SensorValue[flywheelEncoder] = 0;
 		wait1Msec(sampleTime);
-		flywheelVelocity = abs((float)(SensorValue[flywheelEncoder1] + SensorValue[flywheelEncoder2])) / (float)(2 * sampleTime);
+		flywheelVelocity = abs((float)(SensorValue[flywheelEncoder])) / (float)(sampleTime);
 		velocityUpdated = true;
 	}
 }
@@ -119,6 +122,24 @@ void setFlywheelRange(int range) {
 //end set functions region
 
 //autonomous region
+task turnTask() {
+
+}
+
+void turn(float _degreesToTurn_, bool _turningLeft_, int _turnSpeed_=80, bool startAsTask=false) {
+	degreesToTurn = _degreesToTurn_;
+	turnSpeed = _turnSpeed_;
+	turningLeft = _turningLeft_;
+
+	if (startAsTask) {
+		startTask(turnTask);
+	}
+	else {
+
+		//while (
+	}
+}
+
 task driveStraightTask()
 {
 	driveStraightRunning = true;
@@ -269,7 +290,7 @@ task seymoreControl() {
 			}
 			else { //toggleAutostopBtn is pressed
 				automaticStop = !automaticStop;
-				while (vexRT[toggleAutostopBtn] == 1]) { EndTimeSlice(); }
+				while (vexRT[toggleAutostopBtn] == 1) { EndTimeSlice(); }
 			}
 		}
 	}
