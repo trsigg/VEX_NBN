@@ -1,9 +1,8 @@
-#pragma config(Sensor, dgtl1,  flywheelEncoder, sensorQuadEncoder)
+#pragma config(Sensor, dgtl1,  flywheelEncoder1, sensorQuadEncoder)
 #pragma config(Sensor, dgtl3,  leftEncoder,    sensorQuadEncoder)
 #pragma config(Sensor, dgtl5,  rightEncoder,   sensorQuadEncoder)
 #pragma config(Sensor, dgtl7,  flywheelSwitch, sensorDigitalIn)
-#pragma config(Sensor, dgtl8,  solenoidOne,    sensorDigitalOut)
-#pragma config(Sensor, dgtl9,  solenoidTwo,    sensorDigitalOut)
+#pragma config(Sensor, dgtl8,  flywheelEncoder2, sensorQuadEncoder)
 #pragma config(Motor,  port1,           ce,            tmotorVex393_HBridge, openLoop)
 #pragma config(Motor,  port2,           rb,            tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port3,           er,            tmotorVex393_MC29, openLoop)
@@ -36,19 +35,14 @@
 #define fireBtn Btn5U
 #define seymoreOutBtn Btn5D
 #define seymoreManualOverrideBtn Btn8U
-#define punchBtn Btn5U
 #define feedInBtn Btn6U
 #define feedOutBtn Btn6D
-#define switchLauncherModesBtn Btn8L
-#define liftBtn Btn8R
 
-bool flywheelRunning = true;
 bool velocityUpdated = false;
 float flywheelVelocity = 0;
 float targetVelocity = 0;
 int flywheelPower = 0;
 int defaultPower = 0;
-int puncherPower = 80;
 bool driveStraightRunning = false;
 int clicks, rightDirection, leftDirection, drivePower, delayAtEnd, timeout; //driveStraight
 int ballsToFire, fireTimeout;
@@ -75,9 +69,10 @@ int limit(int input, int min, int max) {
 
 task calcVelocity() {
 	while (true) {
-		SensorValue[flywheelEncoder] = 0;
+		SensorValue[flywheelEncoder1] = 0;
+		SensorValue[flywheelEncoder2] = 0;
 		wait1Msec(sampleTime);
-		flywheelVelocity = abs((float)(SensorValue[flywheelEncoder])) / (float)(sampleTime);
+		flywheelVelocity = abs((float)(SensorValue[flywheelEncoder1] + SensorValue[flywheelEncoder2])) / (float)(2 * sampleTime);
 		velocityUpdated = true;
 	}
 }
@@ -92,7 +87,7 @@ void setDrivePower(int right, int left) {
 }
 
 void setLauncherPower(int power) {
-	flywheelPower = limit(power, 0, 127) * (flywheelRunning ? 1 : -1);
+	flywheelPower = limit(power, 0, 127);
 	motor[ce] = flywheelPower;
 	motor[rb] = flywheelPower;
 	motor[er] = flywheelPower;
@@ -236,33 +231,6 @@ task seymoreControl() {
 	}
 }
 
-task puncher() {
-	while (true)
-	{
-		while (vexRT[punchBtn] == 0) { EndTimeSlice(); }
-		setLauncherPower(puncherPower);
-		while (vexRT[punchBtn] == 1) { EndTimeSlice(); }
-		setLauncherPower(0);
-	}
-}
-
-task puncherSpeeds() {
-	TVexJoysticks buttons[4] = {Btn7U, Btn7R, Btn7D, Btn7L}; //creating a pseudo-hash associating buttons with motor powers
-	int powers[4] = {80, 85, 90, 110};
-
-	while (true)
-	{
-		for (int i = 0; i < 4; i++)
-		{
-			if (vexRT[buttons[i]] == 1)
-			{
-				puncherPower = powers[i];
-			}
-			EndTimeSlice();
-		}
-	}
-}
-
 task flywheel() {
 	TVexJoysticks buttons[5] = {Btn8D, Btn7U, Btn7R, Btn7D, Btn7L}; //creating a pseudo-hash associating buttons with velocities and default motor powers
 	float velocities[5] = {0.0, 7.00, 7.74, 8.79, 9.54};
@@ -339,20 +307,6 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 		while (targetVelocity == 0) { EndTimeSlice(); } //pauses while
 	}
 }
-
-task lift() {
-	SensorValue[solenoidOne] = 0;
-	SensorValue[solenoidTwo] = 0;
-
-	while (true) {
-		while (vexRT[liftBtn] == 0) { EndTimeSlice(); }
-		SensorValue[solenoidOne] = 1 - SensorValue[solenoidOne];
-		while (vexRT[liftBtn] == 1) { EndTimeSlice(); }
-		while (vexRT[liftBtn] == 0) { EndTimeSlice(); }
-		SensorValue[solenoidTwo] = 1 - SensorValue[solenoidTwo];
-		while (vexRT[liftBtn] == 1) { EndTimeSlice(); }
-	}
-}
 //end user input region
 
 //begin task control region
@@ -364,56 +318,21 @@ void resetFlywheelVars() {
 	defaultPower = 0;
 }
 
-task launcherMode() {
-	while (true) {
-		while (vexRT[switchLauncherModesBtn] == 0) { EndTimeSlice(); }
-		flywheelRunning = !flywheelRunning;
-		if (flywheelRunning) {
-			resetFlywheelVars();
-			stopTask(puncher);
-			startTask(flywheel);
-			startTask(flywheelStabilization);
-			startTask(seymoreControl);
-			startTask(calcVelocity);
-		}
-		else {
-			setLauncherPower(0);
-			stopTask(flywheel);
-			stopTask(flywheelStabilization);
-			stopTask(seymoreControl);
-			stopTask(calcVelocity);
-			startTask(puncher);
-			startTask(puncherSpeeds);
-		}
-		while (vexRT[switchLauncherModesBtn] == 1) { EndTimeSlice(); }
-	}
-}
-
 void initializeTasks() {
-	if (flywheelRunning) {
-		resetFlywheelVars();
-		startTask(flywheel);
-		startTask(flywheelStabilization);
-		startTask(seymoreControl);
-		startTask(calcVelocity);
-	}
-	else {
-		startTask(puncher);
-		startTask(puncherSpeeds);
-	}
-	startTask(launcherMode);
+	resetFlywheelVars();
+	startTask(flywheel);
+	startTask(flywheelStabilization);
+	startTask(seymoreControl);
+	startTask(calcVelocity);
 	startTask(feedMeControl);
-	startTask(lift);
 }
 
 void emergencyStop() {
 	stopTask(flywheel);
 	stopTask(flywheelStabilization);
-	stopTask(puncher);
 	stopTask(feedMeControl);
 	stopTask(seymoreControl);
 	stopTask(calcVelocity);
-	stopTask(launcherMode);
 
 	initializeTasks();
 }
@@ -423,7 +342,6 @@ void pre_auton() { bStopTasksBetweenModes = true; }
 
 task autonomous() {
 	//start flywheel
-	flywheelRunning = true;
 	initializeTasks();
 	stopTask(feedMeControl);
 	stopTask(seymoreControl);
