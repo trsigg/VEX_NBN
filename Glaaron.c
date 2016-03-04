@@ -25,21 +25,18 @@
 
 #include "Vex_Competition_Includes.c"   //Main competition background code...do not modify!
 
-float Kp = 12.6; //TO TUNE
+float Kp = 2; //TO TUNE
 int Error = 0;
-float Kerror;
 float Ki  = 0.001; //TO TUNE
 float Integral = 0;
-float Kintegral;
-float Kd = 3.4; //TO TUNE
+float Kd = 1.7; //TO TUNE
 int DeltaE = 0;
-float Kdeltae;
 int power = 0;
 float Flyspeed = 0;
 int TargetSpeed = 0;
 int setpower = 0;
-int TargetSpeeds[5] = {0, 83, 103, 80, 80};//Off, Skillz, Long, 1st, 2nd
-int setpowers[5] = {0, 70, 96, 65, 65};
+int TargetSpeeds[5] = {0, 205, 300, 183, 191};//Off, Skillz, Long, 1st, 2nd
+int setpowers[5] = {0, 70, 96, 65, 68};
 TVexJoysticks buttons[5] = {Btn8D, Btn7U, Btn7R, Btn7D, Btn7L};
 int PrevError;
 int Flypower = 0;
@@ -83,14 +80,11 @@ task motorcontrol()
 		Flyspeed = abs(SensorValue[Flywheel]);
 		Error = TargetSpeed - Flyspeed;
 		DeltaE = Error - PrevError;
-		Integral += ((Error + PrevError)/2);
-		Kintegral = Ki*Integral;
-		Kerror = Kp*Error;
-		Kdeltae = Kd*DeltaE;
+		Integral += (Error + PrevError)/2;
 		power = setpower + Kp*Error + Ki*Integral + Kd*DeltaE;
 		SensorValue[Flywheel] = 0;
 		PrevError = Error;
-		wait1Msec(10);
+		wait1Msec(25);
 	}
 }
 
@@ -129,40 +123,40 @@ task autonomous()
 //
 /////////////////////////////////////////////////////////////////////////////////////////
 
-task FeedIntake()
-{
-	while(1)
-	{
-		if(SensorValue[FeedLaunch] == 1)
-		{
-			ToggleIntkae = 1;
-			ToggleFeed = 1;
-		}
-		else
-		{
-			if(SensorValue[IntakeFeed] == 1)
-			{
-				ToggleFeed = 0;
-				ToggleIntkae = 1;
-			}
-			if(SensorValue[Feed2] == 1)
-			{
-				ToggleFeed = 1;
-				ToggleIntkae = 0;
-			}
-		}
-	}
-}
+//task FeedIntake()
+//{
+//	while(1)
+//	{
+//		if(SensorValue[FeedLaunch] == 1)
+//		{
+//			ToggleIntkae = 1;
+//			ToggleFeed = 1;
+//		}
+//		else
+//		{
+//			if(SensorValue[IntakeFeed] == 1)
+//			{
+//				ToggleFeed = 0;
+//				ToggleIntkae = 1;
+//			}
+//			if(SensorValue[Feed2] == 1)
+//			{
+//				ToggleFeed = 1;
+//				ToggleIntkae = 0;
+//			}
+//		}
+//	}
+//}
 
 task usercontrol()
 {
 	SensorValue[LEFT] = 0;
 	SensorValue[RIGHT] = 0;
 	startTask(motorcontrol);
-	startTask(FeedIntake);
+	//startTask(FeedIntake);
 	while(1)
 	{
-		Flypower = (sgn(power) > 0 ? power : 0 );
+		Flypower = (power > 0 ? power : 0 );
 		motor[intkae] = (ToggleIntkae == 1 ? (vexRT[Btn6U]*127 + vexRT[Btn6D]*-127) : 127);
 		motor[feed] = (ToggleFeed == 1 ? (vexRT[Btn5U]*127 + vexRT[Btn5D]*-127) : 127);
 		motor[Fly1] = Flypower;
@@ -176,6 +170,10 @@ task usercontrol()
 		for (int i = 0; i < 5; i++)
 		{
 			n = (vexRT[buttons[i]] == 1 ? i : n);
+		}
+		if(n == 0)
+		{
+			Integral = 0;
 		}
 		TargetSpeed = TargetSpeeds[n];
 		setpower = setpowers[n];
