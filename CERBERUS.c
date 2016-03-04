@@ -25,9 +25,9 @@
 
 #define sampleTime 50. //number of milliseconds between sampling the flywheel velocity and control adjustments in flywheel task
 //PID constants
-#define kp 40.0
-#define ki 0.2
-#define kd 30.
+#define kp 60.0
+#define ki 0.1
+#define kd 250.
 //error ranges
 #define firingErrorMargin 0.01
 #define bangBangErrorMargin 0.03
@@ -44,16 +44,15 @@
 #define driveTimer T3
 
 bool automaticStop = true; //seymoreControl
-						   //driveStraight
+//driveStraight
 bool driveStraightRunning = false;
 int clicks, rightDirection, leftDirection, drivePower, delayAtEnd, timeout; //driveStraight
-																			//fire
+//fire
 int ballsToFire, shotsFired, fireTimeout;
 bool fireRunning;
 //turn
 float degreesToTurn;
-int direction;
-int maxTurnSpeed;
+int direction, maxTurnSpeed, waitAtEnd;
 //flywheel variables
 bool velocityUpdated = false;
 bool adjustmentPeriod = false;
