@@ -25,9 +25,9 @@
 
 #define sampleTime 50. //number of milliseconds between sampling the flywheel velocity and control adjustments in flywheel task
 //PID constants
-#define kp 60.0
-#define ki 0.1
-#define kd 250.
+#define kp 80. //2
+#define ki 0.05 //.001
+#define kd 250. //.07
 //error ranges
 #define firingErrorMargin 0.01
 #define bangBangErrorMargin 0.03
@@ -313,13 +313,6 @@ task flywheel() {
 			if (vexRT[buttons[i]] == 1)
 			{
 				setFlywheelRange(i);
-
-				if (i == 4) {
-					automaticStop = true;
-				}
-				else {
-					automaticStop = false;
-				}
 			}
 			EndTimeSlice();
 		}
