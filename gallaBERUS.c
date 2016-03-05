@@ -1,4 +1,5 @@
-#pragma config(Sensor, in1,    gyro,           sensorGyro)
+#pragma config(Sensor, in1,    pot,            sensorPotentiometer)
+#pragma config(Sensor, in2,    gyro,           sensorGyro)
 #pragma config(Sensor, dgtl1,  flywheelEncoder, sensorQuadEncoder)
 #pragma config(Sensor, dgtl3,  leftEncoder,    sensorQuadEncoder)
 #pragma config(Sensor, dgtl5,  rightEncoder,   sensorQuadEncoder)
@@ -24,8 +25,9 @@
 #include "Vex_Competition_Includes.c"   //Main competition background code...do not modify!
 
 #define sampleTime 25 //number of milliseconds between sampling the flywheel velocity and control adjustments in flywheel task
+#define notFiringCutoff 15 //maximum error value considere not firing
 //PID constants
-#define Kp 3.0
+#define Kp 4.0
 #define Ki 0.001
 #define Kd 1.7
 
@@ -36,10 +38,14 @@
 #define emergencyStopBtn Btn8R
 
 #define driveTimer T1
+#define firingTimer T2
 
+//waitUntilNotFiring
+int initialWait, timeWithoutFiring;
+bool firing = false;
 //driveStraight
 bool driveStraightRunning = false;
-int clicks, rightDirection, leftDirection, drivePower, delayAtEnd, timeout; //driveStraight
+int clicks, rightDirection, leftDirection, drivePower, delayAtEnd, timeout;
 //turn
 float degreesToTurn;
 int direction, maxTurnSpeed, waitAtEnd;
@@ -48,8 +54,8 @@ int flywheelVelocity = 0;
 int targetVelocity = 0;
 int flywheelPower = 0;
 int defaultPower = 0;
-int Integral  = 0;
-
+float Integral  = 0;
+float Error = 0;
 
 float P, I, D; //debugging
 
@@ -173,7 +179,7 @@ task driveStraightTask()
 	driveStraightRunning = false;
 }
 
-void driveStraight(int _clicks_, int _leftDirection_, int _rightDirection_, int _drivePower_, int _delayAtEnd_ = 0, bool startAsTask = false, int _timeout_ = 2500) {
+void driveStraight(int _clicks_, int _leftDirection_, int _rightDirection_, int _drivePower_, bool startAsTask=false, int _delayAtEnd_=250, int _timeout_=2500) {
 	clicks = _clicks_;
 	rightDirection = _rightDirection_;
 	leftDirection = _leftDirection_;
@@ -211,6 +217,23 @@ void driveStraight(int _clicks_, int _leftDirection_, int _rightDirection_, int 
 		wait1Msec(delayAtEnd);
 	}
 }
+
+task waitUntilNotFiringTask() {
+	firing = true;
+	wait1Msec(initialWait);
+	clearTimer(firingTimer);
+
+	while (time1(firingTimer) < timeWithoutFiring) {
+		if (Error > notFiringCutoff) clearTimer(firingTimer);
+	}
+	firing = false;
+}
+
+void waitUntilNotFiring(int _initialWait_, int _timeWithoutFiring_=1000) {
+	initialWait = _initialWait_;
+	timeWithoutFiring = _timeWithoutFiring_;
+	startTask(waitUntilNotFiringTask);
+}
 //end autonomous region
 
 //begin user input region
@@ -231,7 +254,6 @@ task flywheel() {
 }
 
 task flywheelStabilization() { //modulates motor powers to maintain constant flywheel velocity
-	float Error = 0;
 	float PrevError = 0;
 	float DeltaE = 0;
 
@@ -271,13 +293,29 @@ void emergencyStop() {
 void pre_auton() { bStopTasksBetweenModes = true; }
 
 task autonomous() {
+	//start flywheel
 	initializeTasks();
 	setFlywheelRange(1);
 
+	wait1Msec(1000);
+	motor[seymore] = 127; //start feed
+	//wait until first set of preloads are fired
+	waitUntilNotFiring(2000);
+	while (firing) { EndTimeSlice(); }
+	motor[seymore] = 0;
+
+	driveStraight(500, 1, -1, 37); //turn
+	driveStraight(10000, 1, 1, 80); //drive across field
+	driveStraight(800, -1, 1, 37, true); // turn toward net
+
+	//fire remaining balls
+	motor[seymore] = 127;
+	while (true) { EndTimeSlice(); }
 }
 
 task usercontrol() {
 	initializeTasks();
+	setFlywheelRange(0);
 
 	while (true)
 	{
