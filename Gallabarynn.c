@@ -23,27 +23,20 @@
 #pragma autonomousDuration(20)
 #pragma userControlDuration(120)
 
-#include "Vex_Competition_Includes.c"   //Main competition background code...do not modify!
+#include "Vex_Competition_Includes.c"	//Main competition background code...do not modify!
 
-#define fireBtn Btn5U
-#define feedOutBtn Btn5D
-#define toggleAutoStopBtn Btn8U
-
-#define firingErrorMargin 0.05
-
-bool automaticStop = true;
-
-float Kp = 2; //TO TUNE-10
+float Kp = 3;	//TO TUNE
 int Error = 0;
-float Ki  = 0.001; //TO TUNE-.005
+float Ki  = 0.003;	//TO TUNE
 float Integral = 0;
-float Kd = 1.7; //TO TUNE-8.5
+float Kd = 1.7;	//TO TUNE
 int DeltaE = 0;
 int power = 0;
 float Flyspeed = 0;
-float TargetSpeed = 0;
+int TargetSpeed = 0;
 int setpower = 0;
-float TargetSpeeds[5] = {0, 106, 300, 183, 191};//Off, Skillz, Long, 1st, 2nd
+int TargetSpeeds[5] = {0, 200, 300, 183, 191};	//ORIGINAL: {0, 205, 300, 183, 191}
+//  TargetSpeeds[5] = {Off, Skillz, Long, 1st, 2nd}
 int setpowers[5] = {0, 70, 96, 65, 68};
 TVexJoysticks buttons[5] = {Btn8D, Btn7U, Btn7R, Btn7D, Btn7L};
 int PrevError;
@@ -51,7 +44,6 @@ int Flypower = 0;
 int ToggleFeed = 1;
 int ToggleIntkae = 1;
 int n;
-float P,I,D;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -91,11 +83,6 @@ task motorcontrol()
 		DeltaE = Error - PrevError;
 		Integral += (Error + PrevError)/2;
 		power = setpower + Kp*Error + Ki*Integral + Kd*DeltaE;
-
-		P = Kp*Error;
-		I = Ki*Integral;
-		D = Kd*DeltaE;
-
 		SensorValue[Flywheel] = 0;
 		PrevError = Error;
 		wait1Msec(25);
@@ -127,26 +114,6 @@ task autonomous()
 		}
 	}
 }
-
-//task seymoreControl() {
-//	while (true) {
-//		while (vexRT[fireBtn] == 0 && vexRT[feedOutBtn] == 0 && vexRT[toggleAutoStopBtn] == 0) { EndTimeSlice(); }
-//		if (true) {
-//			while (!(SensorValue[flywheelSwitch] == 1 || abs(TargetSpeed - Flyspeed) < firingErrorMargin * TargetSpeed || !automaticStop) && vexRT[fireBtn] == 1) { EndTimeSlice(); }
-//			motor[feed] = 127;
-//			while ((SensorValue[flywheelSwitch] == 1 || abs(TargetSpeed - Flyspeed) < firingErrorMargin * TargetSpeed || !automaticStop) && vexRT[fireBtn] == 1) { EndTimeSlice(); }
-//		}
-//		else if (vexRT[feedOutBtn] == 1) {
-//			motor[feed] = -127;
-//			while (vexRT[feedOutBtn] == 1) { EndTimeSlice(); }
-//		}
-//		else {
-//			automaticStop = !automaticStop;
-//			while (vexRT[toggleAutoStopBtn] == 1) { EndTimeSlice(); }
-//		}
-//		motor[feed] = 0;
-//	}
-//}
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -187,13 +154,12 @@ task usercontrol()
 	SensorValue[LEFT] = 0;
 	SensorValue[RIGHT] = 0;
 	startTask(motorcontrol);
-	//startTask(seymoreControl);
 	//startTask(FeedIntake);
 	while(1)
 	{
 		Flypower = (power > 0 ? power : 0 );
 		motor[intkae] = (ToggleIntkae == 1 ? (vexRT[Btn6U]*127 + vexRT[Btn6D]*-127) : 127);
-		motor[feed] = (ToggleIntkae == 1 ? (vexRT[Btn5U]*127 + vexRT[Btn5D]*-127) : 127);
+		motor[feed] = (ToggleFeed == 1 ? (vexRT[Btn5U]*127 + vexRT[Btn5D]*-127) : 127);
 		motor[Fly1] = Flypower;
 		motor[Fly2] = Flypower;
 		motor[Fly3] = Flypower;
