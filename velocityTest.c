@@ -23,7 +23,7 @@
 #define upOneBtn Btn8U
 #define downOneBtn Btn8D
 
-#define sampleTime 50
+#define sampleTime 25 //50
 
 float velocity = 0.0;
 float velocities[5] = {0, 0, 0, 0, 0};
@@ -107,7 +107,7 @@ task calcVelocity()
 		{
 			SensorValue[flywheelEncoder] = 0;
 			wait1Msec(sampleTime);
-			velocities[i] = (float)(SensorValue[flywheelEncoder]) / (float)(sampleTime);
+			velocities[i] = (float)(SensorValue[flywheelEncoder]) /*/ (float)(sampleTime)*/;
 			velocity = (velocities[0] + velocities[1] + velocities[2] + velocities[3] + velocities[4]) / 5;
 		}
 	}
