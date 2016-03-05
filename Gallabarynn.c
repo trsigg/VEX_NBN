@@ -27,7 +27,7 @@
 
 float Kp = 3;	//TO TUNE
 int Error = 0;
-float Ki  = 0.003;	//TO TUNE
+float Ki  = 0.001;	//TO TUNE
 float Integral = 0;
 float Kd = 1.7;	//TO TUNE
 int DeltaE = 0;
@@ -35,9 +35,9 @@ int power = 0;
 float Flyspeed = 0;
 int TargetSpeed = 0;
 int setpower = 0;
-int TargetSpeeds[5] = {0, 200, 300, 183, 191};	//ORIGINAL: {0, 205, 300, 183, 191}
+int TargetSpeeds[5] = {0, 215, 300, 183, 191};	//ORIGINAL: {0, 205, 300, 183, 191}
 //  TargetSpeeds[5] = {Off, Skillz, Long, 1st, 2nd}
-int setpowers[5] = {0, 70, 96, 65, 68};
+int setpowers[5] = {0, 60, 96, 65, 68};
 TVexJoysticks buttons[5] = {Btn8D, Btn7U, Btn7R, Btn7D, Btn7L};
 int PrevError;
 int Flypower = 0;
@@ -73,6 +73,8 @@ void pre_auton()
 //
 /////////////////////////////////////////////////////////////////////////////////////////
 
+float P, I, D;
+
 task motorcontrol()
 {
 	SensorValue[Flywheel] = 0;
@@ -83,6 +85,11 @@ task motorcontrol()
 		DeltaE = Error - PrevError;
 		Integral += (Error + PrevError)/2;
 		power = setpower + Kp*Error + Ki*Integral + Kd*DeltaE;
+
+		P = Kp*Error;
+		I = Ki*Integral;
+		D = Kd*DeltaE;
+
 		SensorValue[Flywheel] = 0;
 		PrevError = Error;
 		wait1Msec(25);
