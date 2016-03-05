@@ -51,6 +51,7 @@ int Flypower = 0;
 int ToggleFeed = 1;
 int ToggleIntkae = 1;
 int n;
+float P,I,D;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -90,6 +91,11 @@ task motorcontrol()
 		DeltaE = Error - PrevError;
 		Integral += (Error + PrevError)/2;
 		power = setpower + Kp*Error + Ki*Integral + Kd*DeltaE;
+
+		P = Kp*Error;
+		I = Ki*Integral;
+		D = Kd*DeltaE;
+
 		SensorValue[Flywheel] = 0;
 		PrevError = Error;
 		wait1Msec(25);
