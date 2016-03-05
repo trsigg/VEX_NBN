@@ -294,7 +294,7 @@ task autonomous() {
 	motor[seymore] = 0;
 
 	turn(90); //turn toward other starting tile
-	driveStraight(10000, 1, 1, 80); //drive across field
+	driveStraight(13000, 1, 1, 60); //drive across field
 	autonProgress = 1;
 	turn(-90); // turn toward net
 	autonProgress = 2;
