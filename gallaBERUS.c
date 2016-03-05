@@ -23,49 +23,35 @@
 #pragma userControlDuration(120)
 #include "Vex_Competition_Includes.c"   //Main competition background code...do not modify!
 
-#define sampleTime 50. //number of milliseconds between sampling the flywheel velocity and control adjustments in flywheel task
+#define sampleTime 25 //number of milliseconds between sampling the flywheel velocity and control adjustments in flywheel task
 //PID constants
 #define Kp 3.0
 #define Ki 0.001
 #define Kd 1.7
-//error ranges
-#define firingErrorMargin 0.01
-#define bangBangErrorMargin 0.03
-#define integralMargin 1.
 
 #define fireBtn Btn5U
 #define seymoreOutBtn Btn5D
-#define toggleAutoStopBtn Btn8U
 #define feedInBtn Btn6U
 #define feedOutBtn Btn6D
+#define emergencyStopBtn Btn8R
 
-#define flywheelTimer T1
-#define firingTimer T2
-#define driveTimer T3
+#define driveTimer T1
 
-bool automaticStop = false; //seymoreControl
 //driveStraight
 bool driveStraightRunning = false;
 int clicks, rightDirection, leftDirection, drivePower, delayAtEnd, timeout; //driveStraight
-//fire
-int ballsToFire, shotsFired, fireTimeout;
-bool fireRunning;
 //turn
 float degreesToTurn;
 int direction, maxTurnSpeed, waitAtEnd;
 //flywheel variables
-bool adjustmentPeriod = false;
 int flywheelVelocity = 0;
 int targetVelocity = 0;
 int flywheelPower = 0;
-
-//glaaron
 int defaultPower = 0;
 int Integral  = 0;
 
-//debugging
-int seymoreState = 0;
-float P, I, D;
+
+float P, I, D; //debugging
 
 //begin helper functions region
 int limit(int input, int min, int max) {
@@ -225,73 +211,9 @@ void driveStraight(int _clicks_, int _leftDirection_, int _rightDirection_, int 
 		wait1Msec(delayAtEnd);
 	}
 }
-
-task fireTask() {
-	int shotsFired = 0;
-	clearTimer(firingTimer);
-	motor[feedMe] = 127;
-	motor[seymore] = 127;
-	while (shotsFired < ballsToFire && time1(firingTimer) < fireTimeout) {
-		while ((SensorValue[flywheelSwitch] == 1 || abs(targetVelocity - flywheelVelocity) < firingErrorMargin * targetVelocity) && time1(firingTimer) < fireTimeout) { EndTimeSlice(); }
-		motor[seymore] = 0;
-		shotsFired++;
-		wait1Msec(1000);
-		//while(!(SensorValue[flywheelSwitch] == 1 || abs(targetVelocity - flywheelVelocity) < firingErrorMargin * targetVelocity) && time1(firingTimer) < fireTimeout) { EndTimeSlice(); }
-		motor[seymore] = 127;
-	}
-	motor[seymore] = 0;
-}
-
-void fire(int _ballsToFire_, int _fireTimeout_ = 4000) {
-	ballsToFire = _ballsToFire_;
-	fireTimeout = _fireTimeout_;
-	startTask(fireTask);
-}
 //end autonomous region
 
 //begin user input region
-task feedMeControl() {
-	while (true) {
-		while (vexRT[feedInBtn] == 0 && vexRT[feedOutBtn] == 0) { EndTimeSlice(); }
-		if (vexRT[feedInBtn] == 1) {
-			motor[feedMe] = 127;
-			while (vexRT[feedInBtn] == 1) { EndTimeSlice(); }
-		}
-		else {
-			motor[feedMe] = -127;
-			while (vexRT[feedOutBtn] == 1) { EndTimeSlice(); }
-		}
-		motor[feedMe] = 0;
-	}
-}
-
-task seymoreControl() {
-	while (true) {
-		seymoreState = 0;
-		while (vexRT[fireBtn] == 0 && vexRT[seymoreOutBtn] == 0 && vexRT[toggleAutoStopBtn] == 0) { EndTimeSlice(); }
-		if (true) {
-			seymoreState = 1;
-			while (!(SensorValue[flywheelSwitch] == 1 || abs(targetVelocity - flywheelVelocity) < firingErrorMargin * targetVelocity || !automaticStop) && vexRT[fireBtn] == 1) { EndTimeSlice(); }
-			motor[seymore] = 127;
-			while ((SensorValue[flywheelSwitch] == 1 || abs(targetVelocity - flywheelVelocity) < firingErrorMargin * targetVelocity || !automaticStop) && vexRT[fireBtn] == 1) {
-				if (SensorValue[flywheelSwitch] == 0) adjustmentPeriod = false;
-				EndTimeSlice();
-			}
-		}
-		else if (vexRT[seymoreOutBtn] == 1) {
-			seymoreState = 2;
-			motor[seymore] = -127;
-			while (vexRT[seymoreOutBtn] == 1) { EndTimeSlice(); }
-		}
-		else {
-			seymoreState = 3;
-			automaticStop = !automaticStop;
-			while (vexRT[toggleAutoStopBtn] == 1) { EndTimeSlice(); }
-		}
-		motor[seymore] = 0;
-	}
-}
-
 task flywheel() {
 	TVexJoysticks buttons[5] = { Btn8D, Btn7U, Btn7R, Btn7D, Btn7L }; //creating a pseudo-hash associating buttons with velocities and default motor powers
 
@@ -311,13 +233,12 @@ task flywheel() {
 task flywheelStabilization() { //modulates motor powers to maintain constant flywheel velocity
 	float Error = 0;
 	float PrevError = 0;
-	float Integral = 0;
 	float DeltaE = 0;
 
 	while(true)	{
 		SensorValue[flywheelEncoder] = 0;
 		PrevError = Error;
-		wait1Msec(25);
+		wait1Msec(sampleTime);
 
 		flywheelVelocity = abs(SensorValue[flywheelEncoder]);
 		Error = targetVelocity - flywheelVelocity;
@@ -337,15 +258,11 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 void initializeTasks() {
 	startTask(flywheel);
 	startTask(flywheelStabilization);
-	startTask(seymoreControl);
-	startTask(feedMeControl);
 }
 
 void emergencyStop() {
 	stopTask(flywheel);
 	stopTask(flywheelStabilization);
-	stopTask(feedMeControl);
-	stopTask(seymoreControl);
 
 	initializeTasks();
 }
@@ -353,17 +270,22 @@ void emergencyStop() {
 
 void pre_auton() { bStopTasksBetweenModes = true; }
 
-task autonomous() {}
+task autonomous() {
+	initializeTasks();
+	setFlywheelRange(1);
+
+}
 
 task usercontrol() {
-	stopTask(fireTask);
 	initializeTasks();
 
 	while (true)
 	{
-		while (true)
+		while (vexRT[emergencyStopBtn] == 0)
 		{
-			setDrivePower(sgn(vexRT[Ch2]) * vexRT[Ch2] * vexRT[Ch2] / 127, sgn(vexRT[Ch3]) * vexRT[Ch3] * vexRT[Ch3] / 127);
+			setDrivePower(sgn(vexRT[Ch2]) * vexRT[Ch2] * vexRT[Ch2] / 127, sgn(vexRT[Ch3]) * vexRT[Ch3] * vexRT[Ch3] / 127); //drive
+			motor[seymore] = 127*vexRT[fireBtn] - 127*vexRT[seymoreOutBtn];
+			motor[feedMe] = 127*vexRT[feedInBtn] - 127*vexRT[feedOutBtn];
 			EndTimeSlice();
 		}
 
