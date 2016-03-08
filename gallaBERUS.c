@@ -27,10 +27,6 @@
 #define firingErrorMargin 0.0175
 #define sampleTime 25 //number of milliseconds between sampling the flywheel velocity and control adjustments in flywheel task
 #define notFiringCutoff 15 //maximum error value considere not firing
-//PID constants
-#define Kp 3.4
-#define Ki 0.006
-#define Kd 1.1
 
 #define fireBtn Btn5U
 #define seymoreOutBtn Btn5D
@@ -51,12 +47,8 @@ int clicks, rightDirection, leftDirection, drivePower, delayAtEnd, timeout;
 float degreesToTurn;
 int maxTurnSpeed, waitAtEnd;
 //flywheel variables
-int flywheelVelocity = 0;
-int targetVelocity = 0;
-int flywheelPower = 0;
-int defaultPower = 0;
-float Integral  = 0;
-float Error = 0;
+int flywheelVelocity=0, targetVelocity=0, flywheelPower=0, defaultPower=0;
+float Integral=0, Error=0, Ki=0, Kp=0, Kd=0;
 
 float P, I, D; //debugging
 
@@ -90,6 +82,9 @@ void setLauncherPower(int power) {
 void setFlywheelRange(int range) {
 	int velocities[5] = {0, 197, 207, 183, 191};
 	int defaultPowers[5] = {0, 46, 48, 65, 68};
+	float Kps[5] = {0, 2.4, 56, 2.4, 2.4};
+	float Kis[5] = {0, 0.001, 0.01, 0.001, 0.001};
+	float Kds[5] = {0, 2.5, 70, 2.5, 2.5};
 
 	Integral = 0;
 	targetVelocity = velocities[limit(range, 0, 4)];
