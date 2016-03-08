@@ -120,7 +120,7 @@ task main()
 	setDrivePower(0, 0);*/
 
 	int power = 90;
-	spinUp();
+	//spinUp();
 	startTask(feedControl);
 	startTask(calcVelocity);
 	while (true)

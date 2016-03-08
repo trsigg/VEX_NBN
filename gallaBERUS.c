@@ -24,7 +24,7 @@
 #pragma userControlDuration(120)
 #include "Vex_Competition_Includes.c"   //Main competition background code...do not modify!
 
-#define firingErrorMargin 0.0175
+#define firingErrorMargin 1.0
 #define sampleTime 25 //number of milliseconds between sampling the flywheel velocity and control adjustments in flywheel task
 #define notFiringCutoff 15 //maximum error value considere not firing
 
@@ -32,6 +32,8 @@
 #define seymoreOutBtn Btn5D
 #define feedInBtn Btn6U
 #define feedOutBtn Btn6D
+#define liftBtn Btn5U
+#define liftSwitcherBtn Btn8L
 #define emergencyStopBtn Btn8R
 
 #define driveTimer T1
@@ -80,15 +82,19 @@ void setLauncherPower(int power) {
 }
 
 void setFlywheelRange(int range) {
-	int velocities[5] = {0, 197, 207, 183, 191};
-	int defaultPowers[5] = {0, 46, 48, 65, 68};
-	float Kps[5] = {0, 2.4, 56, 2.4, 2.4};
-	float Kis[5] = {0, 0.001, 0.01, 0.001, 0.001};
-	float Kds[5] = {0, 2.5, 70, 2.5, 2.5};
+	int velocities[4] = {0, 170, 185, 233};
+	int defaultPowers[4] = {0, 45, 54, 84};
+	float Kps[4] = {0, 2.6, 2.4, 56};
+	float Kis[4] = {0, 0.001, 0.001, 0.01};
+	float Kds[4] = {0, 1.5, 2.5, 70};
 
 	Integral = 0;
-	targetVelocity = velocities[limit(range, 0, 4)];
-	defaultPower = defaultPowers[limit(range, 0, 4)];
+	int limitedRange = limit(range, 0, 4);
+	Kp = Kps[limitedRange];
+	Ki = Kis[limitedRange];
+	Kd = Kds[limitedRange];
+	targetVelocity = velocities[limitedRange];
+	defaultPower = defaultPowers[limitedRange];
 }
 //end set functions region
 
@@ -227,12 +233,16 @@ task fire() {
 //end autonomous region
 
 //begin user input region
+task lift() {
+	while (true) setLauncherPower(vexRT[liftBtn]==1 ? 127 : 0);
+}
+
 task flywheel() {
-	TVexJoysticks buttons[5] = { Btn8D, Btn7U, Btn7R, Btn7D, Btn7L }; //creating a pseudo-hash associating buttons with velocities and default motor powers
+	TVexJoysticks buttons[4] = { Btn8D, Btn7U, Btn7R, Btn7D }; //creating a pseudo-hash associating buttons with velocities and default motor powers
 
 	while (true)
 	{
-		for (int i = 0; i < 5; i++)
+		for (int i = 0; i < 4; i++)
 		{
 			if (vexRT[buttons[i]] == 1)
 			{
@@ -267,9 +277,29 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 //end user input region
 
 //begin task control region
+task liftSwitcher() {
+	while (true) {
+		//switch to lift
+		while (vexRT[liftSwitcherBtn] == 0) { EndTimeSlice(); }
+		stopTask(flywheel);
+		stopTask(flywheelStabilization);
+		setLauncherPower(0);
+		startTask(lift);
+		while (vexRT[liftSwitcherBtn] == 1) { EndTimeSlice();	}
+		//switch to flywheel
+		while (vexRT[liftSwitcherBtn] == 0) { EndTimeSlice(); }
+		startTask(flywheel);
+		startTask(flywheelStabilization);
+		setLauncherPower(0);
+		stopTask(lift);
+		while (vexRT[liftSwitcherBtn] == 1) { EndTimeSlice();	}
+	}
+}
+
 void initializeTasks() {
 	startTask(flywheel);
 	startTask(flywheelStabilization);
+	startTask(liftSwitcher);
 }
 
 void emergencyStop() {
