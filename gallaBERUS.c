@@ -44,7 +44,7 @@ int initialWait, timeWithoutFiring;
 bool firing = false;
 //driveStraight
 bool driveStraightRunning = false;
-int clicks, rightDirection, leftDirection, drivePower, delayAtEnd, timeout;
+int clicks, direction, drivePower, delayAtEnd, timeout;
 //turn
 float degreesToTurn;
 int maxTurnSpeed, waitAtEnd;
@@ -152,7 +152,7 @@ task driveStraightTask()
 
 	while (abs(totalClicks) < clicks  && time1(driveTimer) < timeout)
 	{
-		setDrivePower(drivePower * leftDirection, slavePower * rightDirection);
+		setDrivePower(drivePower * direction, slavePower * direction);
 
 		error = SensorValue[gyro];
 
@@ -169,10 +169,9 @@ task driveStraightTask()
 	driveStraightRunning = false;
 }
 
-void driveStraight(int _clicks_, int _leftDirection_, int _rightDirection_, int _drivePower_, bool startAsTask=false, int _delayAtEnd_=250, int _timeout_=15000) {
+void driveStraight(int _clicks_, int _direction_=1, int _drivePower_=60, bool startAsTask=false, int _delayAtEnd_=250, int _timeout_=15000) {
 	clicks = _clicks_;
-	rightDirection = _rightDirection_;
-	leftDirection = _leftDirection_;
+	direction = _direction_;
 	drivePower = _drivePower_;
 	delayAtEnd = _delayAtEnd_;
 	timeout = _timeout_;
@@ -192,7 +191,7 @@ void driveStraight(int _clicks_, int _leftDirection_, int _rightDirection_, int 
 
 		while (abs(totalClicks) < clicks  && time1(driveTimer) < timeout)
 		{
-			setDrivePower(drivePower * leftDirection, slavePower * rightDirection);
+			setDrivePower(drivePower * direction, slavePower * direction);
 
 			error = SensorValue[gyro];
 
@@ -371,7 +370,31 @@ task hoardingAuto() { //push balls into our corner,
 }
 
 task classicAuto() {
+	//**fire four initial preloads**
+	turn(21); //turn toward first stack
+	//pick up first stack
+	motor[feedMe] = 127; //start feedToTop
+	driveStraight(900);
 
+	turn(-25); //turn toward net
+	motor[feedMe] = 0; //remove
+	driveStraight(2000); //drive toward net
+	//**fire first stack**
+
+	//pick up second stack
+	motor[feedMe] = 127; //start feedToTop
+	driveStraight(1000); //drive into net for realignment
+	motor[feedMe] = 0; //remove
+	driveStraight(750, -1); //move back
+	//remove - clear out feed
+	motor[feedMe] = -127;
+	wait1Msec(3000);
+	//**fire second stack**
+
+	turn(-72); //turn toward third stack
+	//pick up third stack
+	motor[feedMe] = 127; //start feedToTop
+	driveStraight(1100);
 }
 
 task skillz() {
@@ -388,9 +411,9 @@ task skillz() {
 
 	turn(104); //turn toward middle stack
 	motor[feedMe] = 127; //startTask(feedToTop); //start feeding
-	driveStraight(2300, 1, 1, 60); //drive across field
+	driveStraight(2300); //drive across field
 	turn(-20); // turn toward starting tiles
-	driveStraight(1310, 1, 1, 60); //drive across field
+	driveStraight(1310); //drive across field
 	turn(-78); //turn toward net
 
 	//fire remaining balls
@@ -399,7 +422,7 @@ task skillz() {
 }
 
 task autonomous() {
-	startTask(skillz);
+	startTask(classicAuto);
 
 	while(true) { EndTimeSlice(); }
 }
