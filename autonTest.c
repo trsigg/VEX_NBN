@@ -160,8 +160,6 @@ task driveStraightTask()
 	driveStraightRunning = false;
 }
 
-int totalClicks;
-
 void driveStraight(int _clicks_, int _leftDirection_, int _rightDirection_, int _drivePower_, bool startAsTask=false, int _delayAtEnd_=250, int _timeout_=15000) {
 	clicks = _clicks_;
 	rightDirection = _rightDirection_;
@@ -174,7 +172,7 @@ void driveStraight(int _clicks_, int _leftDirection_, int _rightDirection_, int 
 	}
 	else { //runs as function
 		int coeff = 5;
-		totalClicks = 0;
+		int totalClicks = 0;
 		int slavePower = drivePower;
 		int error = 0;
 
