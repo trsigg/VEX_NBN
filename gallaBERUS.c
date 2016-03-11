@@ -198,7 +198,7 @@ void driveStraight(int _clicks_, int _leftDirection_, int _rightDirection_, int 
 
 			slavePower += error / coeff;
 
-			totalClicks += abs(SensorValue[leftEncoder];
+			totalClicks += abs(SensorValue[leftEncoder]);
 			SensorValue[leftEncoder] = 0;
 			SensorValue[rightEncoder] = 0;
 
@@ -231,6 +231,13 @@ task fire() {
 		motor[seymore] = abs(targetVelocity - flywheelVelocity) < targetVelocity * firingErrorMargin ? 127 : 0;
 		EndTimeSlice();
 	}
+}
+
+task feedToTop() {
+	motor[feedMe] = 127;
+	motor[seymore] = 127;
+	while (SensorValue[flywheelSwitch] == 1) { EndTimeSlice(); }
+	motor[seymore] = 0;
 }
 //end autonomous region
 
@@ -375,13 +382,16 @@ task skillz() {
 	//wait1Msec(1000);
 	//startTask(fire);
 	////wait until first set of preloads are fired
-	//waitUntilNotFiring(1000);
+	//waitUntilNotFiring(12000);
 	//while (firing) { EndTimeSlice(); }
 	//stopTask(fire);
 
-	//turn(95); //turn toward other starting tile
-	driveStraight(3700, 1, 1, 60); //drive across field
-	turn(-90); // turn toward net
+	turn(104); //turn toward middle stack
+	motor[feedMe] = 127; //startTask(feedToTop); //start feeding
+	driveStraight(2300, 1, 1, 60); //drive across field
+	turn(-20); // turn toward starting tiles
+	driveStraight(1310, 1, 1, 60); //drive across field
+	turn(-78); //turn toward net
 
 	//fire remaining balls
 	startTask(fire);
