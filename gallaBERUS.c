@@ -169,9 +169,9 @@ task driveStraightTask()
 	driveStraightRunning = false;
 }
 
-void driveStraight(int _clicks_, int _direction_=1, int _drivePower_=60, bool startAsTask=false, int _delayAtEnd_=250, int _timeout_=15000) {
-	clicks = _clicks_;
-	direction = _direction_;
+void driveStraight(int _clicks_, int _delayAtEnd_=250, int _drivePower_=60, bool startAsTask=false, int _timeout_=15000) {
+	clicks = abs(_clicks_);
+	direction = sgn(_clicks_);;
 	drivePower = _drivePower_;
 	delayAtEnd = _delayAtEnd_;
 	timeout = _timeout_;
@@ -353,10 +353,6 @@ task usercontrol() {
 //autonomii
 void pre_auton() { bStopTasksBetweenModes = true; }
 
-task testAuto() {
-
-}
-
 task skillPointAuto() { //fire into opposing net
 
 }
@@ -365,8 +361,15 @@ task stationaryAuto() { //fire into our net
 
 }
 
-task hoardingAuto() { //push balls into our corner,
-
+task hoardingAuto() { //push balls into our corner
+	driveStraight(2000); //drive forward
+	turn(-15); //turn
+	driveStraight(-1000); //back up to push first stack into start zone
+	turn(18); //turn toward second stack
+	motor[feedMe] = 127; //start feed
+	driveStraight(2300, 750); //pick up second stack
+	turn(180); //turn toward start zone
+	motor[FeedMe] = -127; //upchuck
 }
 
 task classicAuto() {
@@ -385,7 +388,7 @@ task classicAuto() {
 	motor[feedMe] = 127; //start feedToTop
 	driveStraight(1000); //drive into net for realignment
 	motor[feedMe] = 0; //remove
-	driveStraight(750, -1); //move back
+	driveStraight(-750); //move back
 	//remove - clear out feed
 	motor[feedMe] = -127;
 	wait1Msec(3000);
@@ -422,7 +425,11 @@ task skillz() {
 }
 
 task autonomous() {
-	startTask(classicAuto);
+	//startTask(skillPointAuto);
+	//startTask(stationaryAuto);
+	startTask(hoardingAuto);
+	//startTask(classicAuto);
+	//startTask(skillz);
 
 	while(true) { EndTimeSlice(); }
 }
