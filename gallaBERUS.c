@@ -2,8 +2,7 @@
 #pragma config(Sensor, dgtl1,  flywheelEncoder, sensorQuadEncoder)
 #pragma config(Sensor, dgtl3,  leftEncoder,    sensorQuadEncoder)
 #pragma config(Sensor, dgtl5,  rightEncoder,   sensorQuadEncoder)
-#pragma config(Sensor, dgtl9,  flywheelSwitch, sensorDigitalIn)
-#pragma config(Sensor, dgtl10, feedSwitch,     sensorDigitalIn)
+#pragma config(Sensor, dgtl7,  flywheelSwitch, sensorDigitalIn)
 #pragma config(Motor,  port1,           ce,            tmotorVex393_HBridge, openLoop)
 #pragma config(Motor,  port2,           rb,            tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port3,           er,            tmotorVex393_MC29, openLoop)
@@ -23,7 +22,7 @@
 #pragma userControlDuration(120)
 #include "Vex_Competition_Includes.c"   //Main competition background code...do not modify!
 
-#define firingErrorMargin 0.07
+#define firingErrorMargin 0.05
 #define sampleTime 25 //number of milliseconds between sampling the flywheel velocity and control adjustments in flywheel task
 #define notFiringCutoff 20 //maximum error value considere not firing
 
@@ -171,7 +170,7 @@ task driveStraightTask()
 
 void driveStraight(int _clicks_, int _delayAtEnd_=250, int _drivePower_=60, bool startAsTask=false, int _timeout_=15000) {
 	clicks = abs(_clicks_);
-	direction = sgn(_clicks_);;
+	direction = sgn(_clicks_);
 	drivePower = _drivePower_;
 	delayAtEnd = _delayAtEnd_;
 	timeout = _timeout_;
@@ -210,30 +209,49 @@ void driveStraight(int _clicks_, int _delayAtEnd_=250, int _drivePower_=60, bool
 
 task waitUntilNotFiringTask() {
 	firing = true;
-	wait1Msec(initialWait);
-	clearTimer(firingTimer);
+	//if (initialWait == 0) {
+	//	while (SensorValue[flywheelSwitch] == 1) { EndTimeSlice(); }
+	//}
+	//else {
+		wait1Msec(initialWait);
+	//}
+	clearTimer(T2/*firingTimer*/);
 
-	while (time1(firingTimer) < timeWithoutFiring) {
-		if (Error > notFiringCutoff) clearTimer(firingTimer);
+	while (time1[T2/*firingTimer*/] < timeWithoutFiring) {
+		if (SensorValue[flywheelSwitch] == 0) clearTimer(firingTimer);
+		EndTimeSlice();
 	}
 	firing = false;
 }
 
-void waitUntilNotFiring(int _initialWait_, int _timeWithoutFiring_=1750) {
+void waitUntilNotFiring(int _initialWait_=0, int _timeWithoutFiring_=2500) {
 	initialWait = _initialWait_;
 	timeWithoutFiring = _timeWithoutFiring_;
 	startTask(waitUntilNotFiringTask);
 }
 
+int velRan;
+bool inVelRan = false;
+bool unpressed;
+bool shouldFire = false;
+
 task fire() {
 	while (true) {
-		motor[seymore] = abs(targetVelocity - flywheelVelocity) < targetVelocity * firingErrorMargin ? 127 : 0;
+		velRan = targetVelocity * firingErrorMargin;
+		inVelRan = Error < velRan;
+		unpressed = SensorValue[flywheelSwitch] == 1;
+		shouldFire = inVelRan || unpressed;
+		if (shouldFire) {
+			motor[seymore] = 127;
+		}
+		else {
+			motor[seymore] = 0;
+		}
 		EndTimeSlice();
 	}
 }
 
 task feedToTop() {
-	motor[feedMe] = 127;
 	motor[seymore] = 127;
 	while (SensorValue[flywheelSwitch] == 1) { EndTimeSlice(); }
 	motor[seymore] = 0;
@@ -242,8 +260,14 @@ task feedToTop() {
 
 //begin user input region
 task lift() {
+	while (vexRT[deployBtn] == 0) { EndTimeSlice(); }
+	setLauncherPower(-40, -127, 0);
+	wait1Msec(75);
+	setLauncherPower(0);
+	wait1Msec(750);
+
 	while (true) {
-		setLauncherPower(-127*vexRT[liftBtn] - 35*vexRT[deployBtn]);
+		setLauncherPower(-127*vexRT[liftBtn] - 40*vexRT[deployBtn], -127, 0);
 		EndTimeSlice();
 	}
 }
@@ -369,54 +393,65 @@ task hoardingAuto() { //push balls into our corner
 	motor[feedMe] = 127; //start feed
 	driveStraight(2300, 750); //pick up second stack
 	turn(180); //turn toward start zone
-	motor[FeedMe] = -127; //upchuck
+	motor[feedMe] = -127; //upchuck
 }
 
 task classicAuto() {
-	//**fire four initial preloads**
+	setFlywheelRange(3);
+	//fire four initial preloads
+	startTask(fire);
+	waitUntilNotFiring();
+	while (firing) { EndTimeSlice(); }
+	stopTask(fire);
+
+	setFlywheelRange(2);
 	turn(21); //turn toward first stack
 	//pick up first stack
-	motor[feedMe] = 127; //start feedToTop
+	startTask(feedToTop);
 	driveStraight(900);
 
-	turn(-25); //turn toward net
-	motor[feedMe] = 0; //remove
+	turn(-21); //turn toward net
 	driveStraight(2000); //drive toward net
-	//**fire first stack**
+	stopTask(feedToTop);
+	startTask(fire);
+	waitUntilNotFiring();
+	while (firing) { EndTimeSlice(); }
+	stopTask(fire);
 
 	//pick up second stack
-	motor[feedMe] = 127; //start feedToTop
-	driveStraight(1000); //drive into net for realignment
-	motor[feedMe] = 0; //remove
+	startTask(feedToTop);
+	driveStraight(900); //drive into net for realignment
 	driveStraight(-750); //move back
-	//remove - clear out feed
-	motor[feedMe] = -127;
-	wait1Msec(3000);
-	//**fire second stack**
+	//fire second stack
+	stopTask(feedToTop);
+	startTask(fire);
+	waitUntilNotFiring();
+	while (firing) { EndTimeSlice(); }
+	stopTask(fire);
 
-	turn(-72); //turn toward third stack
+	turn(-65); //turn toward third stack
 	//pick up third stack
 	motor[feedMe] = 127; //start feedToTop
 	driveStraight(1100);
 }
 
 task skillz() {
-	////start flywheel
-	//initializeTasks();
-	//setFlywheelRange(2);
+	//start flywheel
+	setFlywheelRange(2);
 
-	//wait1Msec(1000);
-	//startTask(fire);
-	////wait until first set of preloads are fired
-	//waitUntilNotFiring(12000);
-	//while (firing) { EndTimeSlice(); }
-	//stopTask(fire);
+	wait1Msec(1000);
+	startTask(fire);
+	//wait until first set of preloads are fired
+	waitUntilNotFiring(/*12000*/);
+	while (firing) { EndTimeSlice(); }
+	stopTask(fire);
+	motor[seymore] = 0;
 
-	turn(104); //turn toward middle stack
+	turn(108); //turn toward middle stack
 	motor[feedMe] = 127; //startTask(feedToTop); //start feeding
 	driveStraight(2300); //drive across field
-	turn(-20); // turn toward starting tiles
-	driveStraight(1310); //drive across field
+	turn(-15); // turn toward starting tiles
+	driveStraight(1270); //drive across field
 	turn(-78); //turn toward net
 
 	//fire remaining balls
@@ -424,12 +459,20 @@ task skillz() {
 	while (true) { EndTimeSlice(); }
 }
 
+int seymorePower = 0;
+
 task autonomous() {
+	initializeTasks();
+	stopTask(seymoreControl);
+	//motor[feedMe] = 127;
+
 	//startTask(skillPointAuto);
 	//startTask(stationaryAuto);
-	startTask(hoardingAuto);
+	//startTask(hoardingAuto);
 	//startTask(classicAuto);
-	//startTask(skillz);
+	startTask(skillz);
 
-	while(true) { EndTimeSlice(); }
+	while(true) {
+		seymorePower = motor[seymore];
+		EndTimeSlice(); }
 }
