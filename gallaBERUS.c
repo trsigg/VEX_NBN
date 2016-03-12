@@ -84,8 +84,8 @@ void setLauncherPower(int power, int minVal=0, int maxVal=127) {
 }
 
 void setFlywheelRange(int range) {
-	int velocities[4] = {0, 170, 185, 238};
-	int defaultPowers[4] = {0, 45, 54, 87};
+	int velocities[4] = {0, 170, 185, 236};
+	int defaultPowers[4] = {0, 45, 54, 84};
 	float Kps[4] = {0, 2.6, 2.4, 56};
 	float Kis[4] = {0, 0.001, 0.001, 0.01};
 	float Kds[4] = {0, 1.5, 2.5, 80};
@@ -415,6 +415,7 @@ task hoardingAuto() { //push balls into our corner
 	waitUntilNotFiring();
 	while (firing) { EndTimeSlice(); }
 	stopTask(fire);
+	startTask(feedToTop);
 
 	turn(-65); //turn toward third stack
 	//pick up third stack
@@ -429,6 +430,7 @@ task classicAuto() {
 	waitUntilNotFiring();
 	while (firing) { EndTimeSlice(); }
 	stopTask(fire);
+	startTask(feedToTop);
 
 	setFlywheelRange(2);
 	turn(21); //turn toward first stack
@@ -470,7 +472,7 @@ task skillz() {
 	waitUntilNotFiring(12000);
 	while (firing) { EndTimeSlice(); }
 	stopTask(fire);
-	motor[seymore] = 0;
+	startTask(feedToTop);
 
 	turn(108); //turn toward middle stack
 	motor[feedMe] = 127; //startTask(feedToTop); //start feeding
@@ -480,6 +482,7 @@ task skillz() {
 	turn(-78); //turn toward net
 
 	//fire remaining balls
+	stopTask(feedToTop);
 	startTask(fire);
 	while (true) { EndTimeSlice(); }
 }
