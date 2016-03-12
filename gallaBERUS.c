@@ -24,7 +24,7 @@
 #pragma userControlDuration(120)
 #include "Vex_Competition_Includes.c"   //Main competition background code...do not modify!
 
-#define firingErrorMargin 0.05
+#define firingErrorMargin 0.01
 #define sampleTime 25 //number of milliseconds between sampling the flywheel velocity and control adjustments in flywheel task
 #define notFiringCutoff 20 //maximum error value considere not firing
 
@@ -39,8 +39,9 @@
 
 #define driveTimer T1
 #define firingTimer T2
-
+int errortest = 0;
 //waitUntilNotFiring
+
 int initialWait, timeWithoutFiring;
 bool firing = false;
 //driveStraight
@@ -83,11 +84,11 @@ void setLauncherPower(int power, int minVal=0, int maxVal=127) {
 }
 
 void setFlywheelRange(int range) {
-	int velocities[4] = {0, 170, 185, 233};
-	int defaultPowers[4] = {0, 45, 54, 84};
+	int velocities[4] = {0, 170, 185, 238};
+	int defaultPowers[4] = {0, 45, 54, 87};
 	float Kps[4] = {0, 2.6, 2.4, 56};
 	float Kis[4] = {0, 0.001, 0.001, 0.01};
-	float Kds[4] = {0, 1.5, 2.5, 70};
+	float Kds[4] = {0, 1.5, 2.5, 80};
 
 	Integral = 0;
 	int limitedRange = limit(range, 0, 4);
@@ -276,7 +277,7 @@ task lift() {
 
 task seymoreControl() {
 	while (true) {
-		motor[seymore] = 127*vexRT[fireBtn] - 127*vexRT[seymoreOutBtn];
+		motor[seymore] = /*(Error < firingErrorMargin * targetVelocity) || SensorValue[flywheelSwitch] == 1 ?*/ 127*vexRT[fireBtn] - 127*vexRT[seymoreOutBtn] /*: 0*/;
 		EndTimeSlice();
 	}
 }
@@ -308,6 +309,7 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 
 		flywheelVelocity = abs(SensorValue[flywheelEncoder]);
 		Error = targetVelocity - flywheelVelocity;
+		errortest = Error;
 		DeltaE = Error - PrevError;
 		Integral += (Error + PrevError)/2;
 		setLauncherPower(defaultPower + Kp*Error + Ki*Integral + Kd*DeltaE);
@@ -384,6 +386,8 @@ void pre_auton() { bStopTasksBetweenModes = true; }
 
 task skillPointAuto() { //fire into opposing net
 	setFlywheelRange(2);
+	wait1Msec(2000);
+	motor[feedMe] = 127;
 	startTask(fire);
 	wait1Msec(7000);
 	stopTask(fire);
@@ -391,6 +395,8 @@ task skillPointAuto() { //fire into opposing net
 
 task stationaryAuto() { //fire into our net
 	setFlywheelRange(3);
+	wait1Msec(2000);
+	motor[feedMe] = 127;
 	startTask(fire);
 	wait1Msec(7000);
 	stopTask(fire);
@@ -412,13 +418,12 @@ task hoardingAuto() { //push balls into our corner
 
 	turn(-65); //turn toward third stack
 	//pick up third stack
-	motor[feedMe] = 127; //start feedToTop
 	driveStraight(1100);
 }
 
 task classicAuto() {
 	setFlywheelRange(3);
-	motor[seymore] = 127;
+	motor[feedMe] = 127;
 	//fire four initial preloads
 	startTask(fire);
 	waitUntilNotFiring();
@@ -432,7 +437,7 @@ task classicAuto() {
 	driveStraight(900);
 
 	turn(-21); //turn toward net
-	driveStraight(2000); //drive toward net
+	driveStraight(1600); //drive toward net
 	stopTask(feedToTop);
 	startTask(fire);
 	waitUntilNotFiring();
@@ -452,7 +457,6 @@ task classicAuto() {
 
 	turn(-65); //turn toward third stack
 	//pick up third stack
-	motor[feedMe] = 127; //start feedToTop
 	driveStraight(1100);
 }
 
