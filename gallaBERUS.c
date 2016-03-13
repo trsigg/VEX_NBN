@@ -24,7 +24,7 @@
 #pragma userControlDuration(120)
 #include "Vex_Competition_Includes.c"   //Main competition background code...do not modify!
 
-#define firingErrorMargin 0.01
+#define firingErrorMargin 0.05
 #define sampleTime 25 //number of milliseconds between sampling the flywheel velocity and control adjustments in flywheel task
 #define notFiringCutoff 20 //maximum error value considere not firing
 
@@ -84,8 +84,8 @@ void setLauncherPower(int power, int minVal=0, int maxVal=127) {
 }
 
 void setFlywheelRange(int range) {
-	int velocities[4] = {0, 170, 185, 236};
-	int defaultPowers[4] = {0, 45, 54, 84};
+	int velocities[4] = {0, 170, 185, 234};
+	int defaultPowers[4] = {0, 45, 54, 82};
 	float Kps[4] = {0, 2.6, 2.4, 56};
 	float Kis[4] = {0, 0.001, 0.001, 0.01};
 	float Kds[4] = {0, 1.5, 2.5, 80};
@@ -438,17 +438,17 @@ task classicAuto() {
 	startTask(feedToTop);
 	driveStraight(900);
 
-	turn(-21); //turn toward net
-	driveStraight(1600); //drive toward net
+	turn(-18); //turn toward net
+	driveStraight(1150); //drive toward net
 	stopTask(feedToTop);
 	startTask(fire);
-	waitUntilNotFiring();
+	waitUntilNotFiring(3000);
 	while (firing) { EndTimeSlice(); }
 	stopTask(fire);
 
 	//pick up second stack
 	startTask(feedToTop);
-	driveStraight(900); //drive into net for realignment
+	driveStraight(950); //drive into net for realignment
 	driveStraight(-750); //move back
 	//fire second stack
 	stopTask(feedToTop);
@@ -478,8 +478,8 @@ task skillz() {
 	motor[feedMe] = 127; //startTask(feedToTop); //start feeding
 	driveStraight(2300); //drive across field
 	turn(-15); // turn toward starting tiles
-	driveStraight(1270); //drive across field
-	turn(-78); //turn toward net
+	driveStraight(1200); //drive across field
+	turn(-60); //turn toward net
 
 	//fire remaining balls
 	stopTask(feedToTop);
