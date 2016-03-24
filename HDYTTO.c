@@ -27,9 +27,9 @@
 
 #define sampleTime 25. //number of milliseconds between sampling the flywheel velocity and control adjustments in flywheel task
 //PID constants
-float kp = 40.0;
-float ki = 0.05;
-float kd = 30.0;
+#define kp 40.0
+#define ki 0.05
+#define kd 30.
 //error ranges
 #define firingErrorMargin 1.0 //0.05
 #define bangBangErrorMargin 0.03
