@@ -26,10 +26,6 @@
 #include "Vex_Competition_Includes.c"   //Main competition background code...do not modify!
 
 #define sampleTime 25. //number of milliseconds between sampling the flywheel velocity and control adjustments in flywheel task
-//PID constants
-float kp = 40.0;
-float ki = 0.05;
-float kd = 30.0;
 //error ranges
 #define firingErrorMargin 1.0 //0.05
 #define bangBangErrorMargin 0.03
@@ -108,12 +104,18 @@ void setLauncherPower(int power) {
 	motor[us] = flywheelPower;
 }
 
-void setFlywheelRange(int range) {
-	float velocities[5] = { 0.0, 6.85, 7.74, 8.79, 9.54 };
+int velocities[4] = {0, 170, 185, 234};
+float Kps[4] = {0, 2.6, 2.4, 40.0};
+float Kis[4] = {0, 0.001, 0.001, 0.05};
+float Kds[4] = {0, 1.5, 2.5, 30.0};
 
-	integral = 0;
-	targetVelocity = velocities[limit(range, 0, 4)];
-	adjustmentPeriod = range != 0;
+void setFlywheelRange(int range) {
+	Integral = 0;
+	int limitedRange = limit(range, 0, 4);
+	Kp = Kps[limitedRange];
+	Ki = Kis[limitedRange];
+	Kd = Kds[limitedRange];
+	targetVelocity = velocities[limitedRange];
 }
 //end set functions region
 
@@ -281,7 +283,7 @@ task feedMeControl() {
 task seymoreControl() {
 	while (true) {
 		motor[seymore] = (abs(flywheelVelocity - targetVelocity) < firingErrorMargin * targetVelocity) || SensorValue[flywheelSwitch] == 1 ? 127*vexRT[fireBtn] - 127*vexRT[seymoreOutBtn] : 0;
-		if (motor[seymore] == 127 && SensorValue[flywheelSwitch] == 0) adjustmentPeriod = false;
+		if (motor[seymore] == 127 && vexRT[fireBtn] == 1) adjustmentPeriod = false;
 		EndTimeSlice();
 		/*seymoreState = 0;
 		while (vexRT[fireBtn] == 0 && vexRT[seymoreOutBtn] == 0 && vexRT[toggleAutoStopBtn] == 0) { EndTimeSlice(); }
