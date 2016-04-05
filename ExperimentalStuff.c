@@ -23,6 +23,15 @@
 #pragma userControlDuration(120)
 #include "Vex_Competition_Includes.c"   //Main competition background code...do not modify!
 
+#define fireBtn Btn5U
+#define seymoreOutBtn Btn5D
+#define feedInBtn Btn6U
+#define feedOutBtn Btn6D
+#define liftBtn Btn5U
+#define deployBtn Btn5D
+#define liftSwitcherBtn Btn8L
+#define emergencyStopBtn Btn8R
+
 #define driveTimer T2
 #define fireTimer T3
 
@@ -199,19 +208,24 @@ task fireCounting() {
 //end fire counting
 
 //fire
+bool fireRunning = false; //also used in autofeeding
 int ballsToFire, fireTimeout;
 
-void fireRuntime() { motor[seymore] = (Error < targetVelocity * firingErrorMargin) ? 127 : 0; }
+void fireRuntime() { motor[seymore] = (error < targetVelocity * firingErrorMargin) ? 127 : 0; }
+void fireFinish() { fireRunning = false; }
 
 task fireTask() {
 	while (ballsFired < ballsToFire && time1(fireTimer) < fireTimeout) {
 		fireRuntime();
 		EndTimeSlice();
 	}
+	fireFinish();
 }
 
 void fire(int _ballsToFire_=ballsInFeed, bool runAsTask=false, int _timeout_=6000) {
+	ballsToFire = _ballsToFire_;
 	fireTimeout = _timeout_;
+	fireRunning = true;
 	startTask(fireCounting);
 	clearTimer(fireTimer);
 
@@ -220,9 +234,33 @@ void fire(int _ballsToFire_=ballsInFeed, bool runAsTask=false, int _timeout_=600
 	}
 	else {
 		while (ballsFired < ballsToFire && time1(fireTimer) < fireTimeout) { fireRuntime(); }
+		fireFinish();
 	}
 }
 //end fire
+
+task autoFeeding() {
+	while (true) {
+		if (!fireRunning) {
+			motor[feedMe] = (SensorValue[flywheelSwitch] == 1) ? 127 : 0;
+			motor[seymore] = motor[feedMe];
+		}
+		EndTimeSlice();
+	}
+}
+
+task lift() {
+	while (vexRT[deployBtn] == 0) { EndTimeSlice(); }
+	setLauncherPower(-40, -127, 0);
+	wait1Msec(75);
+	setLauncherPower(0);
+	wait1Msec(750);
+
+	while (true) {
+		setLauncherPower(-127*vexRT[liftBtn] - 40*vexRT[deployBtn], -127, 0);
+		EndTimeSlice();
+	}
+}
 
 void pre_auton() { bStopTasksBetweenModes=true; }
 task autonomous() { AutonomousCodePlaceholderForTesting(); }
