@@ -27,11 +27,13 @@
 #define seymoreOutBtn Btn5D
 #define feedInBtn Btn6U
 #define feedOutBtn Btn6D
+#define toggleAutoStopBtn Btn8U
 #define liftBtn Btn5U
 #define deployBtn Btn5D
 #define liftSwitcherBtn Btn8L
 #define emergencyStopBtn Btn8R
 
+#define flywheelTimer T1
 #define driveTimer T2
 #define fireTimer T3
 
@@ -50,7 +52,7 @@ void setDrivePower(int right, int left) {
 	motor[lfdrive] = left;
 	motor[lbdrive] = left;
 }
-//setLauncherPower
+
 void setLauncherPower(int power, int minVal=0, int maxVal=127) {
 	int flywheelPower = limit(power, minVal, maxVal);
 	motor[ce] = flywheelPower;
@@ -58,18 +60,26 @@ void setLauncherPower(int power, int minVal=0, int maxVal=127) {
 	motor[er] = flywheelPower;
 	motor[us] = flywheelPower;
 }
-//end setLauncherPower
+
+task calcVelocity() {
+	while (true) {
+		SensorValue[flywheelEncoder] = 0;
+		wait1Msec(sampleTime);
+		flywheelVelocity = abs((float)(SensorValue[flywheelEncoder]));
+		velocityUpdated = true;
+	}
+}
 
 //setFlywheelRange
 float Integral=0, Ki=0, Kp=0, Kd=0; //also used in flywheelStabilization
 int targetVelocity = 0; //also used in fire, seymoreControl, and flywheelStabilization
 float firingErrorMargin; //also used in fire and seymoreControl
 
-int velocities[4] = {0, 170, 185, 234};
+int velocities[4] = {0, 4.7, 5.1, 5.6};
 float firingErrorMargins[4] = {0.1, 0.1, 0.1, 0.1};
-float Kps[4] = {0, 2.6, 2.4, 56};
-float Kis[4] = {0, 0.001, 0.001, 0.01};
-float Kds[4] = {0, 1.5, 2.5, 80};
+float Kps[4] = {0, 80.0, 80.0, 80.0};
+float Kis[4] = {0, 0.05, 0.05, 0.05};
+float Kds[4] = {0, 250.0, 250.0, 250.0};
 
 void setFlywheelRange(int range) {
 	Integral = 0;
@@ -180,39 +190,71 @@ void driveStraight(int _clicks_, int _delayAtEnd_=250, int _drivePower_=60, bool
 }
 //end driveStraight
 
-//feed counting
+//ball counting
 int ballsInFeed; //also used in fire
-int resistorCutoff = 100;
-
-task feedCounting() {
-	ballsInFeed = 0;
-	while (true) {
-		while (SensorValue[feedResistor] > resistorCutoff) { EndTimeSlice(); }
-		while (SensorValue[feedResistor] < resistorCutoff) { EndTimeSlice(); }
-		ballsInFeed++;
-	}
-}
-//end feed counting
-
-//fire counting
-int ballsFired; //also used in fire
+int resistorCutoff = 300; //also used in autoFeeding
 
 task fireCounting() {
-	ballsInFeed = 0;
 	while (true) {
 		while (SensorValue[flywheelSwitch] == 0) { EndTimeSlice(); }
 		while (SensorValue[flywheelSwitch] == 1) { EndTimeSlice(); }
-		ballsFired++;
+		ballsInFeed--;
 	}
 }
-//end fire counting
+
+task feedCounting() {
+	ballsInFeed = 0;
+	startTask(fireCounting);
+	while (true) {
+		while (SensorValue[feedResistor] < resistorCutoff) { EndTimeSlice(); }
+		while (SensorValue[feedResistor] > resistorCutoff) { EndTimeSlice(); }
+		ballsInFeed++;
+	}
+}
+//end ball counting
+
+//photoresistor
+int photoFeedPower = 0; //also used in feedControl
+
+task autoFeeding() { 
+	motor[feedMe] = 127;
+	while (true) {
+		motor[seymore] = photoFeedPower;
+
+	}
+}
+
+task photoresistor() {
+	startTask(feedCounting);
+	while (ballsInFeed < 4) {
+		photoFeedPower = (SensorValue[flywheelSwitch] == 0 && SensorValue[feedResistor] > resistorCutoff) ? 127 : 0;
+		EndTimeSlice();
+	}
+
+	photoFeedPower = 127;
+	while (SensorValue[flywheelSwitch] == 0) { EndTimeSlice(); }
+	photoFeedPower = 0;
+}
+
+void autoFeed(bool autonomous) {
+	startTask(photoresistor);
+	if (autonomous) startTask(autoFeeding);
+}
+//end photoresistor
 
 //fire
 bool fireRunning = false; //also used in autofeeding
-int ballsToFire, fireTimeout;
+int fireTimeout;
 
-void fireRuntime() { motor[seymore] = (error < targetVelocity * firingErrorMargin) ? 127 : 0; }
-void fireFinish() { fireRunning = false; }
+void fireRuntime() {
+	motor[seymore] = (error < targetVelocity * firingErrorMargin) ? 127 : 0;
+	motor[feedMe] = motor[seymore];
+}
+
+void fireFinish() {
+	fireRunning = false;
+	startTask(feedCounting);
+}
 
 task fireTask() {
 	while (ballsFired < ballsToFire && time1(fireTimer) < fireTimeout) {
@@ -222,33 +264,23 @@ task fireTask() {
 	fireFinish();
 }
 
-void fire(int _ballsToFire_=ballsInFeed, bool runAsTask=false, int _timeout_=6000) {
-	ballsToFire = _ballsToFire_;
+void fire(bool runAsTask=false, int _timeout_=6000) {
 	fireTimeout = _timeout_;
 	fireRunning = true;
-	startTask(fireCounting);
+	stopTask(autofeeding);
 	clearTimer(fireTimer);
 
 	if (runAsTask) {
 		startTask(fireTask);
 	}
 	else {
-		while (ballsFired < ballsToFire && time1(fireTimer) < fireTimeout) { fireRuntime(); }
+		while (ballsInFeed > 0 && time1(fireTimer) < fireTimeout) { fireRuntime(); }
 		fireFinish();
 	}
 }
 //end fire
 
-task autoFeeding() {
-	while (true) {
-		if (!fireRunning) {
-			motor[feedMe] = (SensorValue[flywheelSwitch] == 1) ? 127 : 0;
-			motor[seymore] = motor[feedMe];
-		}
-		EndTimeSlice();
-	}
-}
-
+//lifting
 task lift() {
 	while (vexRT[deployBtn] == 0) { EndTimeSlice(); }
 	setLauncherPower(-40, -127, 0);
@@ -259,6 +291,68 @@ task lift() {
 	while (true) {
 		setLauncherPower(-127*vexRT[liftBtn] - 40*vexRT[deployBtn], -127, 0);
 		EndTimeSlice();
+	}
+}
+
+task liftSwitcher() {
+	while (true) {
+		//switch to lift
+		while (vexRT[liftSwitcherBtn] == 0) { EndTimeSlice(); }
+		stopTask(flywheel);
+		stopTask(flywheelStabilization);
+		stopTask(seymoreControl);
+		setLauncherPower(0);
+		startTask(lift);
+		while (vexRT[liftSwitcherBtn] == 1) { EndTimeSlice();	}
+		//switch to flywheel
+		while (vexRT[liftSwitcherBtn] == 0) { EndTimeSlice(); }
+		startTask(flywheel);
+		startTask(flywheelStabilization);
+		startTask(seymoreControl);
+		setLauncherPower(0);
+		stopTask(lift);
+		while (vexRT[liftSwitcherBtn] == 1) { EndTimeSlice();	}
+	}
+}
+//end lifting
+
+//feedControl
+bool autoStop = true;
+int feedMePower = 0;
+
+task feedControl() {
+	autoFeed(false);
+	while (true) {
+		if (fireBtn == 1 || seymoreOutBtn == 1 || feedInBtn == 1 || feedOutBtn == 1 || toggleAutoStopBtn == 1) {
+			if (vexRT[toggleAutoStopBtn] == 1) {
+				autoStop = !autoStop;
+				while (vexRT[toggleAutoStopBtn] == 1) { EndTimeSlice(); }
+			}
+			motor[seymore] = (Error < firingErrorMargin * targetVelocity) || SensorValue[flywheelSwitch] == 0 || !autoStop ? 127*vexRT[fireBtn] - 127*vexRT[seymoreOutBtn] : 0;
+		}
+		else {
+			motor[seymore] = photoFeedPower;
+		}
+		motor[feedMe] = 127*vexRT[feedInBtn] - 127*vexRT[feedOutBtn];
+		feedMePower =  motor[feedMe];
+		EndTimeSlice();
+	}
+}
+//end feedControl
+
+task flywheel() {
+	TVexJoysticks buttons[4] = { Btn8D, Btn7U, Btn7R, Btn7D }; //creating a pseudo-hash associating buttons with velocities and default motor powers
+
+	while (true)
+	{
+		for (int i = 0; i < 4; i++)
+		{
+			if (vexRT[buttons[i]] == 1)
+			{
+				setFlywheelRange(i);
+			}
+			EndTimeSlice();
+		}
 	}
 }
 
