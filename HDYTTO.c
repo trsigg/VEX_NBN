@@ -109,7 +109,7 @@ void setLauncherPower(int power) {
 }
 
 void setFlywheelRange(int range) {
-	float velocities[5] = { 0.0, 6.85, 7.74, 8.79, 9.54 };
+	float velocities[5] = { 0.0, 3.0, 7.74, 8.79, 9.54 };
 
 	integral = 0;
 	targetVelocity = velocities[limit(range, 0, 4)];

@@ -92,11 +92,11 @@ task adjustmentTask() {
 //setFlywheelRange
 float integral=0, Ki=0, Kp=0, Kd=0; //also used in flywheelStabilization
 
-int velocities[4] = {0, 4.7, 5.1, 5.6};
+int velocities[4] = {0, 3.3, 5.1, 5.6};
 float firingErrorMargins[4] = {0.1, 0.1, 0.1, 0.1};
-float Kps[4] = {0, 80.0, 80.0, 80.0};
+float Kps[4] = {0, 40.0, 80.0, 80.0};
 float Kis[4] = {0, 0.005, 0.005, 0.005};
-float Kds[4] = {0, 80.0, 80.0, 80.0};
+float Kds[4] = {0, 20.0, 80.0, 80.0};
 
 void setFlywheelRange(int range) {
 	integral = 0;
@@ -213,7 +213,7 @@ void driveStraight(int _clicks_, int _delayAtEnd_=250, int _drivePower_=60, bool
 
 //ball counting
 int ballsInFeed; //also used in fire
-int resistorCutoff = 2900; //also used in autoFeeding
+int resistorCutoff = 300; //also used in autoFeeding
 
 task fireCounting() {
 	while (true) {
@@ -228,8 +228,8 @@ task feedCounting() {
 	ballsInFeed = 0;
 	startTask(fireCounting);
 	while (true) {
-		while (SensorValue[feedResistor] > resistorCutoff) { EndTimeSlice(); }
 		while (SensorValue[feedResistor] < resistorCutoff) { EndTimeSlice(); }
+		while (SensorValue[feedResistor] > resistorCutoff) { EndTimeSlice(); }
 		ballsInFeed++;
 		//wait1Msec(250);
 	}
@@ -248,7 +248,7 @@ task photoresistor() {
 	startTask(feedCounting);
 	while (true) {
 		while (ballsInFeed < 4) {
-			photoFeedPower = (SensorValue[flywheelSwitch] == 0 && SensorValue[feedResistor] < resistorCutoff) ? 127 : 0;
+			photoFeedPower = (SensorValue[flywheelSwitch] == 0 && SensorValue[feedResistor] > resistorCutoff) ? 127 : 0;
 			EndTimeSlice();
 		}
 
@@ -338,7 +338,7 @@ task flywheel() {
 }
 
 //flywheelStabilization
-float bangBangErrorMargin=0.3, integralMargin=1.0;
+float bangBangErrorMargin=0.1, integralMargin=1.0;
 
 //debug
 int bangBangCount;
@@ -384,7 +384,7 @@ task flywheelStabilization() { //modulates motor powers to maintain constant fly
 		bbpercentup = 100 * numbbup / bangBangCount;
 		bangBangPerSec = (float)((float)bangBangCount * 1000) / (float)(time1(flywheelTimer) + .1);
 
-		while (abs(targetVelocity - flywheelVelocity) < bangBangErrorMargin * flywheelVelocity && targetVelocity > 0) {
+		while (abs(targetVelocity - flywheelVelocity) > bangBangErrorMargin * flywheelVelocity && targetVelocity > 0) {
 			setLauncherPower((targetVelocity > flywheelVelocity) ? (127) : (0));
 			EndTimeSlice();
 		}
