@@ -1,5 +1,5 @@
 #pragma config(Sensor, in1,    gyro,           sensorGyro)
-#pragma config(Sensor, in2,    feedResistor,   sensorReflection)
+#pragma config(Sensor, in2,    feedResistor,   sensorLineFollower)
 #pragma config(Sensor, dgtl1,  flywheelEncoder, sensorQuadEncoder)
 #pragma config(Sensor, dgtl3,  leftEncoder,    sensorQuadEncoder)
 #pragma config(Sensor, dgtl5,  rightEncoder,   sensorQuadEncoder)
@@ -36,6 +36,7 @@
 #define flywheelTimer T1
 #define driveTimer T2
 #define fireTimer T3
+#define feedTimer T4
 
 int limit(int input, int min, int max) {
 	if (input <= max && input >= min) {
@@ -92,11 +93,11 @@ task adjustmentTask() {
 //setFlywheelRange
 float integral=0, Ki=0, Kp=0, Kd=0; //also used in flywheelStabilization
 
-int velocities[4] = {0, 3.3, 5.1, 5.6};
-float firingErrorMargins[4] = {0.1, 0.1, 0.1, 0.1};
+int velocities[4] = {0, 3.0, 4.0, 6.2};
+float firingErrorMargins[4] = {1.0, 1.0, 1.0, 1.0}/*{0.1, 0.1, 0.1, 0.1}*/;
 float Kps[4] = {0, 40.0, 80.0, 80.0};
 float Kis[4] = {0, 0.005, 0.005, 0.005};
-float Kds[4] = {0, 20.0, 80.0, 80.0};
+float Kds[4] = {0, 10.0, 10.0, 10.0};
 
 void setFlywheelRange(int range) {
 	integral = 0;
@@ -212,32 +213,21 @@ void driveStraight(int _clicks_, int _delayAtEnd_=250, int _drivePower_=60, bool
 //end driveStraight
 
 //ball counting
-int ballsInFeed; //also used in fire
-int resistorCutoff = 300; //also used in autoFeeding
+int ballsInFeed; //also used in fire and photoresistor
 
 task fireCounting() {
 	while (true) {
 		while (SensorValue[flywheelSwitch] == 0) { EndTimeSlice(); }
 		while (SensorValue[flywheelSwitch] == 1) { EndTimeSlice(); }
-		ballsInFeed--;
+		ballsInFeed = limit(ballsInFeed-1, 0, 4);
 		wait1Msec(250);
-	}
-}
-
-task feedCounting() {
-	ballsInFeed = 0;
-	startTask(fireCounting);
-	while (true) {
-		while (SensorValue[feedResistor] < resistorCutoff) { EndTimeSlice(); }
-		while (SensorValue[feedResistor] > resistorCutoff) { EndTimeSlice(); }
-		ballsInFeed++;
-		//wait1Msec(250);
 	}
 }
 //end ball counting
 
 //photoresistor
 int photoFeedPower = 0; //also used in feedControl
+int resistorCutoff = 2900;
 
 task autoFeeding() {
 	motor[feedMe] = 127;
@@ -245,11 +235,26 @@ task autoFeeding() {
 }
 
 task photoresistor() {
-	startTask(feedCounting);
+	startTask(fireCounting);
+	ballsInFeed = 0;
+
 	while (true) {
 		while (ballsInFeed < 4) {
-			photoFeedPower = (SensorValue[flywheelSwitch] == 0 && SensorValue[feedResistor] > resistorCutoff) ? 127 : 0;
-			EndTimeSlice();
+			while (SensorValue[feedResistor] > resistorCutoff) { EndTimeSlice(); }
+			while (SensorValue[feedResistor] < resistorCutoff) {
+				photoFeedPower = (SensorValue[flywheelSwitch] == 0) ? 127 : 0;
+				EndTimeSlice();
+			}
+
+			ballsInFeed = limit(ballsInFeed+1, 0, 4);
+
+			clearTimer(feedTimer);
+			wait1Msec(50);
+			/*while (time1(feedTimer)<50) {
+				photoFeedPower = (SensorValue[flywheelSwitch] == 0) ? 127 : 0;
+				EndTimeSlice();
+			}*/
+			photoFeedPower = 0;
 		}
 
 		photoFeedPower = (SensorValue[flywheelSwitch] == 0) ? 127 : 0;
@@ -270,12 +275,13 @@ task fireTask() {
 	int targetBalls = ballsInFeed - ballsToFire;
 
 	while (ballsInFeed > targetBalls && time1(fireTimer) < fireTimeout) {
-		motor[seymore] = (abs(error) < targetVelocity * firingErrorMargin) ? 127 : 0;
+		motor[seymore] = (abs(error) < targetVelocity * firingErrorMargin || SensorValue[flywheelSwitch] == 0) ? 127 : 0;
 		motor[feedMe] = motor[seymore];
 		EndTimeSlice();
 	}
 
 	firing = false;
+	ballsInFeed = 0;
 	startTask(autoFeeding);
 }
 
@@ -294,7 +300,7 @@ int feedMePower = 0;
 task feedControl() {
 	motor[seymore] = 0;
 	while (true) {
-		if (vexRT[fireBtn] == 1 || vexRT[seymoreOutBtn] == 1 || vexRT[feedInBtn] == 1 || vexRT[feedOutBtn] == 1 || vexRT[toggleAutoStopBtn] == 1) {
+		if (vexRT[fireBtn] == 1 || vexRT[seymoreOutBtn] == 1 || vexRT[toggleAutoStopBtn] == 1) {
 			if (vexRT[toggleAutoStopBtn] == 1) {
 				autoStop = !autoStop;
 				while (vexRT[toggleAutoStopBtn] == 1) { EndTimeSlice(); }
@@ -445,7 +451,6 @@ void emergencyStop() {
 	stopTask(flywheelStabilization);
 	stopTask(photoresistor);
 	stopTask(feedControl);
-	stopTask(feedCounting);
 	stopTask(fireCounting);
 	stopTask(lift);
 	stopTask(liftSwitcher);
@@ -503,9 +508,9 @@ task autonomous() {
 	driveStraight(1100);*/
 
 	//classicAuto
-	/*setFlywheelRange(3);
+	setFlywheelRange(3);
 	//fire four initial preloads
-	fire();
+	fire(4);
 	while (firing) { EndTimeSlice(); }
 
 	setFlywheelRange(2);
@@ -527,7 +532,7 @@ task autonomous() {
 
 	turn(-65); //turn toward third stack
 	//pick up third stack
-	driveStraight(1100);*/
+	driveStraight(1100);
 
 	//skillz
 	/*//start flywheel
