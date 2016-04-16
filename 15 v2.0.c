@@ -108,7 +108,7 @@ task autonomous()
 
 float Bks = .0000035;
 float Bkm = .0000035;
-float Bkl = .0000015;
+float Bkl = .0000018;
 
 task usercontrol()
 {
@@ -143,7 +143,7 @@ task usercontrol()
 		}
 		else if (vexRT[Btn7U] == 1)
 		{
-			distance = 350;
+			distance = 348;
 			hold     = 1/(Bkl*MainBattery);
 			ShortShot = 0;
 			//FlyPower(60);
